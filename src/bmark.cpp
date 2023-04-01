@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include "bmark.h"
+
+#define MAX_COMMAND_LEN 500
 
 using std::cout;
 using std::endl;
@@ -13,7 +16,7 @@ using std::vector;
 namespace fs = std::filesystem;
 using fs::path;
 
-const path BOOKMARKS_FILE = "/home/balder/.local/share/bookmarks/bookmarkss.txt";
+const path BOOKMARKS_FILE = "/home/balder/.local/share/bookmarks/bookmarks.txt";
 const path ALIAS_FILE = "/home/balder/.local/share/bookmarks/aliases.txt";
 
 void usage(){
@@ -26,8 +29,12 @@ void usage(){
     cout << "   update          update shell aliases file" << endl;
 }
 
-void add_bmark(string name = ""){
+void add_bmark(string name){
     path cwd = fs::current_path();
+    
+    if (!fs::exists(BOOKMARKS_FILE)){
+        fs::create_directories(BOOKMARKS_FILE.parent_path());
+    }
 
     if (name == "") name = cwd.stem();
 
@@ -57,8 +64,9 @@ void list_bmark(){
 }
 
 void edit_bmark(){
-    /* std::array<char> buffer[256]; */
-    /* std::system(buffer); */
+    string cmd = "nvim " + BOOKMARKS_FILE.string();
+    std::system(cmd.c_str());
+    update_bmark();
 }
 
 void rm_bmark(){
@@ -88,7 +96,7 @@ int main(int argc, char **argv) {
 
     if (args[1] == "add") {
         if (argc > 3) {
-            cout << "ERROR: The `add` command only takes one argument." << endl;
+            cout << "ERROR: The `add` command takes at most one argument." << endl;
             exit(1);
         }
         if (argc == 3) add_bmark(args[2]);

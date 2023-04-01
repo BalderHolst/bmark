@@ -4,6 +4,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES bmark.cpp)
 
 add_executable(bmark ${SOURCE_FILES})
