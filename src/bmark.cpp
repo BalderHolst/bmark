@@ -16,11 +16,11 @@ using std::vector;
 namespace fs = std::filesystem;
 using fs::path;
 
-const path BOOKMARKS_FILE = "/home/balder/.local/share/bookmarks/bookmarks.txt";
+path BOOKMARKS_FILE = "/home/balder/.local/share/bookmarks/bookmarks.txt";
 const path ALIAS_FILE = "/home/balder/.local/share/bookmarks/aliases.txt";
 
 void usage(){
-    cout << "usage: bmark <command>" << endl << endl;
+    cout << "usage: bmark <command>\n" << endl;
     cout << "Commands:" << endl;
     cout << "   add [<name>]    add a bookmark to the current working directory" << endl;
     cout << "   list            list all stored bookmarks" << endl;
@@ -39,14 +39,14 @@ void add_bmark(string name){
     if (name == "") name = cwd.stem();
 
     std::ofstream myfile (BOOKMARKS_FILE, std::ios_base::app); // Open in append mode
-    if (myfile.is_open()){
-        myfile << cwd.string() << " - " << name << endl;
-        myfile.close();
-    }
-    else {
+    if (!myfile.is_open()) {
         cout << "ERROR: could not open file: " << BOOKMARKS_FILE << endl;
         exit(1);
     }
+    
+    myfile << name << " - \"" << cwd.string() << "\"" << endl;
+    myfile.close();
+    update_bmark();
 }
 
 void list_bmark(){
@@ -71,10 +71,35 @@ void edit_bmark(){
 
 void rm_bmark(){
 
+    update_bmark();
 }
 
 void update_bmark(){
+    std::ifstream bfile (BOOKMARKS_FILE);
+    std::ofstream afile (ALIAS_FILE);
 
+    if (!bfile.is_open()) {
+        cout << "ERROR: Could not open bookmarks file: " + BOOKMARKS_FILE.string();
+        exit(1);
+    }
+
+    if (!afile.is_open()) {
+        cout << "ERROR: Could not open alias file: " + BOOKMARKS_FILE.string();
+        exit(1);
+    }
+
+    string line;
+    const string sep = " - ";
+    
+    while ( std::getline(bfile, line) ){
+        int sep_loc = line.find(sep);
+        string name = line.substr(0, sep_loc);
+        string path = line.substr(sep_loc + sep.length());
+        afile << "alias _" << name << "=" << path << "\n";
+    }
+
+    bfile.close();
+    afile.close();
 }
 
 int main(int argc, char **argv) {
