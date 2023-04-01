@@ -44,14 +44,14 @@ std::string exec_command(const std::string cmd, int& out_exitStatus) {
 }
 
 void usage(){
-    cout << "usage: bmark <command>\n" << endl;
-    cout << "Commands:" << endl;
+    cout << "usage: bmark <command>\n"                                           << endl;
+    cout << "Commands:"                                                          << endl;
     cout << "   add [<name>]    add a bookmark to the current working directory" << endl;
-    cout << "   list            list all stored bookmarks" << endl;
-    cout << "   edit            edit bookmarks in a text editor" << endl;
-    cout << "   open            open a new terminal in a bookmarked location" << endl;
-    cout << "   rm <name>       remove a bookmark with a given name" << endl;
-    cout << "   update          update shell aliases file" << endl;
+    cout << "   list            list all stored bookmarks"                       << endl;
+    cout << "   edit            edit bookmarks in a text editor"                 << endl;
+    cout << "   open            open a new terminal in a bookmarked location"    << endl;
+    cout << "   rm <name>       remove a bookmark with a given name"             << endl;
+    cout << "   update          update shell aliases file"                       << endl;
 }
 
 // TODO: prevent shortcuts with the same name
