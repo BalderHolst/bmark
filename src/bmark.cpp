@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 using fs::path;
 
 const path BOOKMARKS_FILE = "/home/balder/.local/share/bmark/bookmarks.txt";
-const path ALIAS_FILE = "/home/balder/.local/share/bmark/aliases.txt";
+const path ALIAS_FILE = "/home/balder/.local/share/bmark/aliases.sh";
 const string DMENU_COMMAND = "rofi -dmenu";
 const string SEP = " - ";
 const string TERMINAL_COMMAND = "kitty --detach";
@@ -63,6 +63,7 @@ void usage(){
     cout << "   update          update shell aliases file" << endl;
 }
 
+// TODO: prevent shortcuts with the same name
 void add_bmark(string name){
     path cwd = fs::current_path();
     
