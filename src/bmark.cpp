@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <array>
 #include "bmark.h"
 
 #define MAX_COMMAND_LEN 500
@@ -16,8 +17,40 @@ using std::vector;
 namespace fs = std::filesystem;
 using fs::path;
 
-path BOOKMARKS_FILE = "/home/balder/.local/share/bookmarks/bookmarks.txt";
-const path ALIAS_FILE = "/home/balder/.local/share/bookmarks/aliases.txt";
+const path BOOKMARKS_FILE = "/home/balder/.local/share/bmark/bookmarks.txt";
+const path ALIAS_FILE = "/home/balder/.local/share/bmark/aliases.txt";
+const string DMENU_COMMAND = "rofi -dmenu";
+const string SEP = " - ";
+const string TERMINAL_COMMAND = "kitty --detach";
+
+std::string exec_command(const std::string cmd, int& out_exitStatus)
+{
+    out_exitStatus = 0;
+    auto pPipe = ::popen(cmd.c_str(), "r");
+    if(pPipe == nullptr)
+    {
+        throw std::runtime_error("Cannot open pipe");
+    }
+
+    std::array<char, 256> buffer;
+
+    std::string result;
+
+    while(not std::feof(pPipe))
+    {
+        auto bytes = std::fread(buffer.data(), 1, buffer.size(), pPipe);
+        result.append(buffer.data(), bytes);
+    }
+
+    auto rc = ::pclose(pPipe);
+
+    if(WIFEXITED(rc))
+    {
+        out_exitStatus = WEXITSTATUS(rc);
+    }
+
+    return result;
+}
 
 void usage(){
     cout << "usage: bmark <command>\n" << endl;
@@ -25,6 +58,7 @@ void usage(){
     cout << "   add [<name>]    add a bookmark to the current working directory" << endl;
     cout << "   list            list all stored bookmarks" << endl;
     cout << "   edit            edit bookmarks in a text editor" << endl;
+    cout << "   open            open a new terminal in a bookmarked location" << endl;
     cout << "   rm <name>       remove a bookmark with a given name" << endl;
     cout << "   update          update shell aliases file" << endl;
 }
@@ -74,6 +108,22 @@ void rm_bmark(){
     update_bmark();
 }
 
+void open_bmark(){
+    string cmd = "cat \"" + BOOKMARKS_FILE.string() + "\" | " + DMENU_COMMAND;
+
+    int exit_code;
+    string choice = exec_command(cmd, exit_code);
+
+    if (exit_code != 0) {
+        cout << "ERROR: error while running dmenu-command" << endl;
+        exit(1);
+    }
+
+    string path = choice.substr(choice.find(SEP) + SEP.length());
+    cmd = TERMINAL_COMMAND + " " + path;
+    exec_command(cmd, exit_code);
+}
+
 void update_bmark(){
     std::ifstream bfile (BOOKMARKS_FILE);
     std::ofstream afile (ALIAS_FILE);
@@ -89,12 +139,11 @@ void update_bmark(){
     }
 
     string line;
-    const string sep = " - ";
     
     while ( std::getline(bfile, line) ){
-        int sep_loc = line.find(sep);
+        int sep_loc = line.find(SEP);
         string name = line.substr(0, sep_loc);
-        string path = line.substr(sep_loc + sep.length());
+        string path = line.substr(sep_loc + SEP.length());
         afile << "alias _" << name << "=" << path << "\n";
     }
 
@@ -132,6 +181,9 @@ int main(int argc, char **argv) {
     }
     else if (args[1] == "edit") {
         edit_bmark();
+    }
+    else if (args[1] == "open") {
+        open_bmark();
     }
     else if (args[1] == "rm") {
         rm_bmark();
