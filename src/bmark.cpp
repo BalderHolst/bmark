@@ -7,8 +7,6 @@
 #include <array>
 #include "bmark.h"
 
-#define MAX_COMMAND_LEN 500
-
 using std::cout;
 using std::endl;
 using std::string;
@@ -23,29 +21,22 @@ const string DMENU_COMMAND = "rofi -dmenu";
 const string SEP = " - ";
 const string TERMINAL_COMMAND = "kitty --detach";
 
-std::string exec_command(const std::string cmd, int& out_exitStatus)
-{
+std::string exec_command(const std::string cmd, int& out_exitStatus) {
     out_exitStatus = 0;
     auto pPipe = ::popen(cmd.c_str(), "r");
-    if(pPipe == nullptr)
-    {
+    if(pPipe == nullptr) {
         throw std::runtime_error("Cannot open pipe");
     }
 
     std::array<char, 256> buffer;
-
     std::string result;
-
-    while(not std::feof(pPipe))
-    {
+    while(not std::feof(pPipe)) {
         auto bytes = std::fread(buffer.data(), 1, buffer.size(), pPipe);
         result.append(buffer.data(), bytes);
     }
 
     auto rc = ::pclose(pPipe);
-
-    if(WIFEXITED(rc))
-    {
+    if(WIFEXITED(rc)) {
         out_exitStatus = WEXITSTATUS(rc);
     }
 
