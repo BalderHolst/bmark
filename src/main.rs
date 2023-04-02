@@ -195,13 +195,25 @@ fn main() {
     let cmd = args[1].as_str();
 
     match cmd {
-        "add"    => bmark_add(None),
+        "add"    => {
+            if args.len() == 3 {
+                bmark_add(Some(args[2].clone()))
+            }
+            else if args.len() == 2 {
+                bmark_add(None)
+            }
+            else {
+                eprintln!("ERROR: Add commands takes zero or one argument.\n");
+                usage();
+                exit(1);
+            }
+        },
         "edit"   => bmark_edit(),
         "list"   => bmark_list(),
         "open"   => bmark_open(),
         "rm"     => {
             if args.len() < 3 {
-                eprintln!("ERROR: Please provide a bookmark to open.\n");
+                eprintln!("ERROR: Please provide a bookmark to remove.\n");
                 usage();
                 exit(1);
             }
