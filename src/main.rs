@@ -15,33 +15,11 @@ fn usage() {
     println!("usage: bmark <command>\n"                                          );
     println!("Commands:"                                                         );
     println!("   add [<name>]    add a bookmark to the current working directory");
-    println!("   list            list all stored bookmarks"                      );
     println!("   edit            edit bookmarks in a text editor"                );
+    println!("   list            list all stored bookmarks"                      );
     println!("   open            open a new terminal in a bookmarked location"   );
     println!("   rm <name>       remove a bookmark with a given name"            );
     println!("   update          update shell aliases file"                      );
-}
-
-fn bmark_list() {
-    let bookmarks_file = get_bookmarks_path();
-    let mut contents = String::new();
-
-    match File::open(&bookmarks_file) {
-        Ok(mut file) => {
-            match file.read_to_string(&mut contents) {
-                Ok(_) => {},
-                Err(_) => {
-                    eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
-                    exit(1);
-                }
-            }
-        }
-        Err(_) => {
-            eprintln!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
-            exit(1);
-        }
-    }
-    println!("{}", contents);
 }
 
 fn bmark_add(name: Option<String>) {
@@ -74,6 +52,29 @@ fn bmark_add(name: Option<String>) {
     }
 }
 
+fn bmark_list() {
+    let bookmarks_file = get_bookmarks_path();
+    let mut contents = String::new();
+
+    match File::open(&bookmarks_file) {
+        Ok(mut file) => {
+            match file.read_to_string(&mut contents) {
+                Ok(_) => {},
+                Err(_) => {
+                    eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
+                    exit(1);
+                }
+            }
+        }
+        Err(_) => {
+            eprintln!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
+            exit(1);
+        }
+    }
+    println!("{}", contents);
+}
+
+
 fn main() {
 
     let mut args: Vec<String> = Vec::new();
@@ -90,8 +91,8 @@ fn main() {
     let cmd = args[1].as_str();
 
     match cmd {
-        "list" => bmark_list(),
         "add" => bmark_add(None),
+        "list" => bmark_list(),
         _ => {
             eprintln!("ERROR: command `{}` not known.\n", cmd);
             usage();
