@@ -2,7 +2,11 @@ use std::env;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::fs::{File, OpenOptions};
-use std::process::exit;
+use std::process::{exit, Command};
+
+fn get_editor_cmd() -> String {
+    "nvim".to_owned()
+}
 
 fn get_bookmarks_path() -> PathBuf { 
     PathBuf::from("/home/balder/.local/share/bmark/bookmarks.txt")
@@ -52,6 +56,17 @@ fn bmark_add(name: Option<String>) {
     }
 }
 
+fn bmark_edit() {
+    let path = get_bookmarks_path();
+    let editor_cmd = get_editor_cmd() + " " + path.to_str().unwrap();
+
+    Command::new("sh")
+        .arg("-c")
+        .arg(editor_cmd)
+        .status()
+        .expect("ERROR: Failed to execute editor command.");
+}
+
 fn bmark_list() {
     let bookmarks_file = get_bookmarks_path();
     let mut contents = String::new();
@@ -92,6 +107,7 @@ fn main() {
 
     match cmd {
         "add" => bmark_add(None),
+        "edit" => bmark_edit(),
         "list" => bmark_list(),
         _ => {
             eprintln!("ERROR: command `{}` not known.\n", cmd);
