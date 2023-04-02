@@ -4,8 +4,16 @@ use std::path::PathBuf;
 use std::fs::{File, OpenOptions};
 use std::process::{exit, Command};
 
+fn get_dmenu_cmd() -> String {
+    "rofi -dmenu".to_owned()
+}
+
 fn get_editor_cmd() -> String {
     "nvim".to_owned()
+}
+
+fn get_open_term_cmd() -> String {
+    "kitty --detach".to_owned()
 }
 
 fn get_bookmarks_path() -> PathBuf { 
@@ -13,6 +21,28 @@ fn get_bookmarks_path() -> PathBuf {
 }
 fn get_aliases_path() -> PathBuf { 
     PathBuf::from("/home/balder/.local/share/bmark/aliases.sh")
+}
+
+fn get_bookmarks() -> String {
+    let bookmarks_file = get_bookmarks_path();
+    let mut contents = String::new();
+
+    match File::open(&bookmarks_file) {
+        Ok(mut file) => {
+            match file.read_to_string(&mut contents) {
+                Ok(_) => {},
+                Err(_) => {
+                    eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
+                    exit(1);
+                }
+            }
+        }
+        Err(_) => {
+            eprintln!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
+            exit(1);
+        }
+    }
+    contents
 }
 
 fn usage() {
@@ -68,25 +98,52 @@ fn bmark_edit() {
 }
 
 fn bmark_list() {
-    let bookmarks_file = get_bookmarks_path();
-    let mut contents = String::new();
+    println!("{}", get_bookmarks());
+}
 
-    match File::open(&bookmarks_file) {
-        Ok(mut file) => {
-            match file.read_to_string(&mut contents) {
-                Ok(_) => {},
-                Err(_) => {
-                    eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
+fn bmark_open(){
+    let cmd = "echo '".to_owned() + get_bookmarks().as_str()+ "'" + " | " + get_dmenu_cmd().as_str();
+    let path = match Command::new("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .output()
+    {
+        Ok(output) => {
+            let choice = String::from_utf8(output.stdout).unwrap();
+            let mut split = choice.split(" - ");
+            split.next();
+            match split.next() {
+                Some(p) => p.to_owned(),
+                None => {
+                    eprintln!("ERROR: Could not parse line bookmark: `{}`", "test");
                     exit(1);
                 }
             }
-        }
+        },
         Err(_) => {
-            eprintln!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
+            eprintln!("ERROR: Error running dmenu command: `{}`", cmd);
             exit(1);
         }
+    };
+
+    let cmd = get_open_term_cmd() + " " + path.as_str();
+
+    if let Err(_) = Command::new("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .status()
+    {
+        eprintln!("ERROR: Could not open terminal with this command: `{}`", cmd);
+        exit(1);
     }
-    println!("{}", contents);
+}
+
+fn bmark_rm(){
+
+}
+
+fn bmark_update(){
+
 }
 
 
@@ -106,9 +163,19 @@ fn main() {
     let cmd = args[1].as_str();
 
     match cmd {
-        "add" => bmark_add(None),
-        "edit" => bmark_edit(),
-        "list" => bmark_list(),
+        "add"    => bmark_add(None),
+        "edit"   => bmark_edit(),
+        "list"   => bmark_list(),
+        "open"   => bmark_open(),
+        "rm"     => {
+            if args.len() < 3 {
+                eprintln!("ERROR: Please provide a bookmark to open.\n");
+                usage();
+                exit(1);
+            }
+            bmark_rm()
+        },
+        "update" => bmark_update(),
         _ => {
             eprintln!("ERROR: command `{}` not known.\n", cmd);
             usage();
