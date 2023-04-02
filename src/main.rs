@@ -1,7 +1,7 @@
 use std::env;
-use std::io::Read;
-use std::path::{Path, PathBuf};
-use std::fs::File;
+use std::io::{Read, Write};
+use std::path::PathBuf;
+use std::fs::{File, OpenOptions};
 use std::process::exit;
 
 fn get_bookmarks_path() -> PathBuf { 
@@ -31,17 +31,47 @@ fn bmark_list() {
             match file.read_to_string(&mut contents) {
                 Ok(_) => {},
                 Err(_) => {
-                    println!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
+                    eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
                     exit(1);
                 }
             }
         }
         Err(_) => {
-            println!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
+            eprintln!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
             exit(1);
         }
     }
     println!("{}", contents);
+}
+
+fn bmark_add(name: Option<String>) {
+    let bookmarks_file = get_bookmarks_path();
+
+    match OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&bookmarks_file)
+    {
+        Ok(mut file) => {
+            let cwd = env::current_dir().unwrap();
+
+            if let Err(_) = match name {
+                Some(n) => writeln!(file, "{} - \"{}\"", n, cwd.display()), 
+                None => {
+                    let stem = cwd.file_stem().unwrap();
+                    writeln!(file, "{} - \"{}\"", stem.to_str().unwrap(), cwd.display())
+                },
+            } {
+                eprintln!("ERROR: Could not write to file: {}", bookmarks_file.display());
+                exit(1);
+            }
+        }
+        Err(_) => {
+            eprintln!("ERROR: Could not open bookmarks file: `{}`", bookmarks_file.display());
+            exit(1);
+        }
+
+    }
 }
 
 fn main() {
@@ -61,8 +91,9 @@ fn main() {
 
     match cmd {
         "list" => bmark_list(),
+        "add" => bmark_add(None),
         _ => {
-            println!("ERROR: command `{}` not known.\n", cmd);
+            eprintln!("ERROR: command `{}` not known.\n", cmd);
             usage();
         }
     }
