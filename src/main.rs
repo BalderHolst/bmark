@@ -58,7 +58,6 @@ fn usage() {
 
 fn bmark_add(name: Option<String>) {
     let bookmarks_file = get_bookmarks_path();
-
     match OpenOptions::new()
         .write(true)
         .append(true)
@@ -66,7 +65,6 @@ fn bmark_add(name: Option<String>) {
     {
         Ok(mut file) => {
             let cwd = env::current_dir().unwrap();
-
             if let Err(_) = match name {
                 Some(n) => writeln!(file, "{} - \"{}\"", n, cwd.display()), 
                 None => {
@@ -82,19 +80,19 @@ fn bmark_add(name: Option<String>) {
             eprintln!("ERROR: Could not open bookmarks file: `{}`", bookmarks_file.display());
             exit(1);
         }
-
     }
+    bmark_update();
 }
 
 fn bmark_edit() {
     let path = get_bookmarks_path();
     let editor_cmd = get_editor_cmd() + " " + path.to_str().unwrap();
-
     Command::new("sh")
         .arg("-c")
         .arg(editor_cmd)
         .status()
         .expect("ERROR: Failed to execute editor command.");
+    bmark_update();
 }
 
 fn bmark_list() {
@@ -143,7 +141,41 @@ fn bmark_rm(){
 }
 
 fn bmark_update(){
-
+    let bookmarks = get_bookmarks();
+    let mut aliases = String::new();
+    for line in bookmarks.split("\n") {
+        let mut parts = line.split(" - ");
+        let name = parts.next().unwrap();
+        let path = match parts.next() {
+            Some(p) => p,
+            None => {
+                if line != "" { eprintln!("WARNING: Could not parse bookmark: `{}`. Skipping.", line) };
+                continue;
+            }
+        };
+        aliases += format!("alias _{}={}\n", name, path).as_str();
+    }
+    let bytes = aliases.as_bytes();
+    match OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(get_aliases_path())
+    {
+        Ok(mut file) => {
+            match file.write_all(bytes) {
+                Ok(_) => { },
+                Err(_) => {
+                    eprintln!("ERROR: Could not open aliases file");
+                    exit(1);
+                }
+            }
+        },
+        Err(_) => {
+            eprintln!("ERROR: Could not open aliases file");
+            exit(1);
+        }
+    }
 }
 
 
