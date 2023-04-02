@@ -54,6 +54,7 @@ fn main() {
 
     if args.len() <= 1 {
         usage();
+        exit(1);
     }
 
     let cmd = args[1].as_str();
