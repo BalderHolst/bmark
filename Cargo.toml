@@ -2,7 +2,11 @@
 name = "bmark"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Bookmarks cli for your local file system."
+readme = "README.md"
+documentation = "https://github.com/BalderHolst/bmark" # TODO
+homepage = "https://github.com/BalderHolst/bmark" # TODO
+repository = "https://github.com/BalderHolst/bmark"
+license-file = "LICENSE"
 
 [dependencies]
