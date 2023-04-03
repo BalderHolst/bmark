@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::{env, fs};
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -19,8 +20,27 @@ fn get_open_term_cmd() -> String {
 fn get_bookmarks_path() -> PathBuf { 
     PathBuf::from("/home/balder/.local/share/bmark/bookmarks.txt")
 }
+
 fn get_aliases_path() -> PathBuf { 
     PathBuf::from("/home/balder/.local/share/bmark/aliases.sh")
+}
+
+fn get_bookmark_map() -> HashMap<String, String> {
+    let mut hmap: HashMap<String, String> = HashMap::new();
+
+    for line in get_bookmarks().split("\n") {
+        let mut parts = line.split(" - ");
+        let name = parts.next().unwrap();
+        let path = match parts.next() {
+            Some(p) => p,
+            None => {
+                if line != "" { eprintln!("WARNING: Could not parse bookmark: `{}`. Skipping.", line) };
+                continue;
+            }
+        };
+        hmap.insert(name.to_owned(), path.to_owned());
+    }
+    hmap
 }
 
 fn get_bookmarks() -> String {
@@ -152,8 +172,43 @@ fn bmark_open(){
     }
 }
 
-fn bmark_rm(){
+fn bmark_rm(bmark: String){
 
+    let mut bookmarks_str = String::new();
+    let mut removed = false;
+
+    for (k, v) in get_bookmark_map() {
+        if k == bmark { 
+            removed = true;
+            continue;
+        }
+        bookmarks_str += format!("{} - {}", k, v).as_str();
+    }
+    if !removed {
+        eprintln!("ERROR: could not find bookmark `{}`.", bmark);
+        exit(1);
+    }
+    let bytes = bookmarks_str.as_bytes();
+    match OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(get_bookmarks_path())
+    {
+        Ok(mut file) => {
+            match file.write_all(bytes) {
+                Ok(_) => { },
+                Err(_) => {
+                    eprintln!("ERROR: Could not open bookmarks file");
+                    exit(1);
+                }
+            }
+        },
+        Err(_) => {
+            eprintln!("ERROR: Could not open bookmarks file");
+            exit(1);
+        }
+    }
 }
 
 fn bmark_update(){
@@ -233,7 +288,7 @@ fn main() {
                 usage();
                 exit(1);
             }
-            bmark_rm()
+            bmark_rm(args[2].clone())
         },
         "update" => bmark_update(),
         _ => {
