@@ -182,7 +182,7 @@ fn bmark_rm(bmark: String){
             removed = true;
             continue;
         }
-        bookmarks_str += format!("{} - {}", k, v).as_str();
+        bookmarks_str += format!("{} - {}\n", k, v).as_str();
     }
     if !removed {
         eprintln!("ERROR: could not find bookmark `{}`.", bmark);
