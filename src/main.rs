@@ -105,7 +105,7 @@ fn bmark_add(name: Option<String>) {
                 Some(n) => writeln!(file, "{} - \"{}\"", n, cwd.display()), 
                 None => {
                     let stem = cwd.file_stem().unwrap();
-                    writeln!(file, "{} - \"{}\"\n", stem.to_str().unwrap(), cwd.display())
+                    writeln!(file, "{} - \"{}\"", stem.to_str().unwrap(), cwd.display())
                 },
             } {
                 eprintln!("ERROR: Could not write to file: {}", bookmarks_file.display());
@@ -132,7 +132,7 @@ fn bmark_edit() {
 }
 
 fn bmark_list() {
-    println!("{}", get_bookmarks());
+    print!("{}", get_bookmarks());
 }
 
 fn bmark_open(){
