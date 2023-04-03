@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, fs};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::fs::{File, OpenOptions};
@@ -58,7 +58,23 @@ fn usage() {
 
 fn bmark_add(name: Option<String>) {
     let bookmarks_file = get_bookmarks_path();
+
+    let data_dir = bookmarks_file.parent()
+        .expect("Found no parrent to bookmarks file.");
+
+    if !data_dir.exists() {
+        match fs::create_dir_all(data_dir) {
+            Ok(_) => {},
+            Err(e) => {
+                eprint!("ERROR: Could not create data directory `{}`", e);
+                exit(1);
+            }
+        };
+    }
+
+
     match OpenOptions::new()
+        .create(true)
         .write(true)
         .append(true)
         .open(&bookmarks_file)
