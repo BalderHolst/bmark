@@ -119,7 +119,7 @@ impl Config {
             data_dir: "/home/balder/.local/share/bmark".to_string(),
             editor_cmd: "nvim".to_string(),
             dmenu_cmd: "dmenu".to_string(),
-            terminal_cmd: "kitty".to_string(),
+            terminal_cmd: "kitty --detach".to_string(),
             alias_prefix: "_".to_string(),
             display_sep: " : ".to_string(),
         }
@@ -278,7 +278,7 @@ fn bmark_open(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from_config(&config);
     let cmd = "echo '".to_owned() + bookmarks.readable().as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
-    let path = match Command::new("sh")
+    let mut path = match Command::new("sh")
         .arg("-c")
         .arg(&cmd)
         .output()
@@ -304,8 +304,9 @@ fn bmark_open(){
             exit(1);
         }
     };
-
-    let cmd = config.terminal_cmd + " " + path.as_str();
+    path.pop(); // Remove newline
+    let cmd = config.terminal_cmd + " \"" + path.as_str() + "\"";
+    println!("{cmd}");
 
     if let Err(_) = Command::new("sh")
         .arg("-c")
