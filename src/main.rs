@@ -7,30 +7,13 @@ use std::path::PathBuf;
 use std::fs::{File, OpenOptions};
 use std::process::{exit, Command};
 
-fn get_dmenu_cmd() -> String {
-    "rofi -dmenu".to_owned()
-}
+static BOOKMARKS_FILE: &str = "bookmarks.txt";
+static ALIAS_FILE: &str = "aliases.sh";
 
-fn get_editor_cmd() -> String {
-    "nvim".to_owned()
-}
-
-fn get_open_term_cmd() -> String {
-    "kitty --detach".to_owned()
-}
-
-fn get_bookmarks_path() -> PathBuf { 
-    PathBuf::from("/home/balder/.local/share/bmark/bookmarks.txt")
-}
-
-fn get_aliases_path() -> PathBuf { 
-    PathBuf::from("/home/balder/.local/share/bmark/aliases.sh")
-}
-
-fn get_bookmark_map() -> HashMap<String, String> {
+fn get_bookmark_map(config: &Config) -> HashMap<String, String> {
     let mut hmap: HashMap<String, String> = HashMap::new();
 
-    for line in get_bookmarks().split("\n") {
+    for line in get_bookmarks(config).split("\n") {
         let mut parts = line.split(" - ");
         let name = parts.next().unwrap();
         let path = match parts.next() {
@@ -45,10 +28,9 @@ fn get_bookmark_map() -> HashMap<String, String> {
     hmap
 }
 
-fn get_bookmarks() -> String {
-    let bookmarks_file = get_bookmarks_path();
+fn get_bookmarks(config: &Config) -> String {
+    let bookmarks_file = config.get_bookmarks_file();
     let mut contents = String::new();
-
     match File::open(&bookmarks_file) {
         Ok(mut file) => {
             match file.read_to_string(&mut contents) {
@@ -149,6 +131,16 @@ impl Config {
             },
         }
     }
+    fn get_bookmarks_file(&self) -> PathBuf {
+        let mut bookmarks_file = PathBuf::from(&self.data_dir);
+        bookmarks_file.push(BOOKMARKS_FILE);
+        bookmarks_file
+    }
+    fn get_alias_file(&self) -> PathBuf {
+        let mut bookmarks_file = PathBuf::from(&self.data_dir);
+        bookmarks_file.push(ALIAS_FILE);
+        bookmarks_file
+    }
 }
 
 impl fmt::Display for Config {
@@ -169,7 +161,7 @@ fn bmark_config() {
 }
 
 fn bmark_add(name: Option<String>) {
-    let bookmarks_file = get_bookmarks_path();
+    let bookmarks_file = Config::get_user_config().get_bookmarks_file();
 
     let data_dir = bookmarks_file.parent()
         .expect("Found no parrent to bookmarks file.");
@@ -213,8 +205,9 @@ fn bmark_add(name: Option<String>) {
 }
 
 fn bmark_edit() {
-    let path = get_bookmarks_path();
-    let editor_cmd = get_editor_cmd() + " " + path.to_str().unwrap();
+    let config = Config::get_user_config();
+    let path = config.get_bookmarks_file();
+    let editor_cmd = config.editor_cmd + " " + path.to_str().unwrap();
     Command::new("sh")
         .arg("-c")
         .arg(editor_cmd)
@@ -224,11 +217,13 @@ fn bmark_edit() {
 }
 
 fn bmark_list() {
-    print!("{}", get_bookmarks());
+    let config = Config::get_user_config();
+    print!("{}", get_bookmarks(&config));
 }
 
 fn bmark_open(){
-    let cmd = "echo '".to_owned() + get_bookmarks().as_str()+ "'" + " | " + get_dmenu_cmd().as_str();
+    let config = Config::get_user_config();
+    let cmd = "echo '".to_owned() + get_bookmarks(&config).as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
     let path = match Command::new("sh")
         .arg("-c")
         .arg(&cmd)
@@ -252,7 +247,7 @@ fn bmark_open(){
         }
     };
 
-    let cmd = get_open_term_cmd() + " " + path.as_str();
+    let cmd = config.terminal_cmd + " " + path.as_str();
 
     if let Err(_) = Command::new("sh")
         .arg("-c")
@@ -266,10 +261,12 @@ fn bmark_open(){
 
 fn bmark_rm(bmark: String){
 
+    let config = Config::get_user_config();
+
     let mut bookmarks_str = String::new();
     let mut removed = false;
 
-    for (k, v) in get_bookmark_map() {
+    for (k, v) in get_bookmark_map(&config) {
         if k == bmark { 
             removed = true;
             continue;
@@ -285,7 +282,7 @@ fn bmark_rm(bmark: String){
         .write(true)
         .create(true)
         .truncate(true)
-        .open(get_bookmarks_path())
+        .open(config.get_bookmarks_file())
     {
         Ok(mut file) => {
             match file.write_all(bytes) {
@@ -304,7 +301,8 @@ fn bmark_rm(bmark: String){
 }
 
 fn bmark_update(){
-    let bookmarks = get_bookmarks();
+    let config = Config::get_user_config();
+    let bookmarks = get_bookmarks(&config);
     let mut aliases = String::new();
     for line in bookmarks.split("\n") {
         let mut parts = line.split(" - ");
@@ -323,7 +321,7 @@ fn bmark_update(){
         .write(true)
         .create(true)
         .truncate(true)
-        .open(get_aliases_path())
+        .open( Config::get_user_config().get_alias_file())
     {
         Ok(mut file) => {
             match file.write_all(bytes) {
