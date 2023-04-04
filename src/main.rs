@@ -9,12 +9,13 @@ use std::process::{exit, Command};
 
 static BOOKMARKS_FILE: &str = "bookmarks.txt";
 static ALIAS_FILE: &str = "aliases.sh";
+static BOOKMARKS_SEP: &str = " - ";
 
 fn get_bookmark_map(config: &Config) -> HashMap<String, String> {
     let mut hmap: HashMap<String, String> = HashMap::new();
 
     for line in get_bookmarks(config).split("\n") {
-        let mut parts = line.split(" - ");
+        let mut parts = line.split(BOOKMARKS_SEP);
         let name = parts.next().unwrap();
         let path = match parts.next() {
             Some(p) => p,
@@ -33,14 +34,11 @@ fn get_bookmarks(config: &Config) -> String {
     let mut contents = String::new();
     match File::open(&bookmarks_file) {
         Ok(mut file) => {
-            match file.read_to_string(&mut contents) {
-                Ok(_) => {},
-                Err(_) => {
+            if let Err(_) = file.read_to_string(&mut contents) {
                     eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
                     exit(1);
                 }
-            }
-        }
+            },
         Err(_) => {
             eprintln!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
             exit(1);
@@ -186,10 +184,10 @@ fn bmark_add(name: Option<String>) {
         Ok(mut file) => {
             let cwd = env::current_dir().unwrap();
             if let Err(_) = match name {
-                Some(n) => writeln!(file, "{} - \"{}\"", n, cwd.display()), 
+                Some(n) => writeln!(file, "{}{}\"{}\"", n, BOOKMARKS_SEP, cwd.display()), 
                 None => {
                     let stem = cwd.file_stem().unwrap();
-                    writeln!(file, "{} - \"{}\"", stem.to_str().unwrap(), cwd.display())
+                    writeln!(file, "{}{}\"{}\"", stem.to_str().unwrap(), BOOKMARKS_SEP, cwd.display())
                 },
             } {
                 eprintln!("ERROR: Could not write to file: {}", bookmarks_file.display());
@@ -235,7 +233,7 @@ fn bmark_open(){
                 eprintln!("No bookmark chosen.");
                 exit(1);
             }
-            let mut split = choice.split(" - ");
+            let mut split = choice.split(BOOKMARKS_SEP);
             split.next();
             match split.next() {
                 Some(p) => p.to_owned(),
@@ -275,7 +273,7 @@ fn bmark_rm(bmark: String){
             removed = true;
             continue;
         }
-        bookmarks_str += format!("{} - {}\n", k, v).as_str();
+        bookmarks_str += format!("{}{}{}\n", k, BOOKMARKS_SEP, v).as_str();
     }
     if !removed {
         eprintln!("ERROR: could not find bookmark `{}`.", bmark);
@@ -309,7 +307,7 @@ fn bmark_update(){
     let bookmarks = get_bookmarks(&config);
     let mut aliases = String::new();
     for line in bookmarks.split("\n") {
-        let mut parts = line.split(" - ");
+        let mut parts = line.split(BOOKMARKS_SEP);
         let name = parts.next().unwrap();
         let path = match parts.next() {
             Some(p) => p,
