@@ -1,3 +1,5 @@
+use std::fmt;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::{env, fs};
 use std::io::{Read, Write};
@@ -74,6 +76,96 @@ fn usage() {
     println!("   open            open a new terminal in a bookmarked location"   );
     println!("   rm <name>       remove a bookmark with a given name"            );
     println!("   update          update shell aliases file"                      );
+}
+
+// User defined config. These options get merged with the defaults for Config.
+#[derive(Deserialize)]
+struct UserConfig {
+    data_dir: Option<String>,
+    editor_cmd: Option<String>,
+    dmenu_cmd: Option<String>,
+    terminal_cmd: Option<String>,
+    alias_prefix: Option<String>,
+}
+
+impl UserConfig {
+    fn empty() -> UserConfig {
+        UserConfig {  
+            data_dir: None,
+            editor_cmd: None,
+            dmenu_cmd: None,
+            terminal_cmd: None,
+            alias_prefix: None,
+        }
+    }
+}
+
+// The configuration used by the progmem.
+struct Config {
+    data_dir: String,
+    editor_cmd: String,
+    dmenu_cmd: String,
+    terminal_cmd: String,
+    alias_prefix: String,
+}
+
+impl Config {
+    fn default() -> Config {
+        Config { 
+            data_dir: "/home/balder/.local/share/bmark".to_string(),
+            editor_cmd: "nvim".to_string(),
+            dmenu_cmd: "dmenu".to_string(),
+            terminal_cmd: "kitty".to_string(),
+            alias_prefix: "_".to_string(),
+        }
+    }
+    fn get_user_config() -> Config {
+        let config_path = PathBuf::from("/home/balder/.config/bmark/config.toml");
+        match File::open(&config_path) {
+            Ok(mut file) => {
+                let mut lines = String::new();
+                if let Err(_) = file.read_to_string(&mut lines){
+                    eprintln!("ERROR: Can not read lines from file: `{}`", config_path.display());
+                    exit(1);
+                }
+                let uc: UserConfig = match toml::from_str(lines.as_str()) {
+                    Ok(val) => val,
+                    Err(e) => {
+                        eprintln!("{e}");
+                        eprintln!("WARNING: could not parse `config.toml` file. Using default settings.");
+                        UserConfig::empty()
+                    }
+                };
+                let mut c = Config::default();
+                if let Some(data_dir) = uc.data_dir { c.data_dir = data_dir }
+                if let Some(editor_cmd) = uc.editor_cmd { c.editor_cmd = editor_cmd }
+                if let Some(dmenu_cmd) = uc.dmenu_cmd { c.dmenu_cmd = dmenu_cmd }
+                if let Some(terminal_cmd) = uc.terminal_cmd { c.terminal_cmd = terminal_cmd }
+                if let Some(alias_prefix) = uc.alias_prefix { c.alias_prefix = alias_prefix }
+                c
+            },
+            Err(_) => {
+                Config::default()
+            },
+        }
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}\n{}\n{}\n{}", 
+               self.data_dir, 
+               self.dmenu_cmd,
+               self.editor_cmd,
+               self.terminal_cmd,
+               )
+    }
+}
+
+fn bmark_config() {
+    let config = Config::get_user_config();
+
+    println!("{}", config);
 }
 
 fn bmark_add(name: Option<String>) {
@@ -266,7 +358,7 @@ fn main() {
     let cmd = args[1].as_str();
 
     match cmd {
-        "add"    => {
+        "add" => {
             if args.len() == 3 {
                 bmark_add(Some(args[2].clone()))
             }
@@ -279,10 +371,10 @@ fn main() {
                 exit(1);
             }
         },
-        "edit"   => bmark_edit(),
-        "list"   => bmark_list(),
-        "open"   => bmark_open(),
-        "rm"     => {
+        "edit" => bmark_edit(),
+        "list" => bmark_list(),
+        "open" => bmark_open(),
+        "rm" => {
             if args.len() < 3 {
                 eprintln!("ERROR: Please provide a bookmark to remove.\n");
                 usage();
@@ -291,6 +383,7 @@ fn main() {
             bmark_rm(args[2].clone())
         },
         "update" => bmark_update(),
+        "config" => bmark_config(),
         _ => {
             eprintln!("ERROR: command `{}` not known.\n", cmd);
             usage();
