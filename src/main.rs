@@ -65,7 +65,7 @@ impl Bookmarks {
         for (k, v) in map {
             let mut padding = "".to_string();
             for _ in 0..(max_len - k.len()) { padding.push(' ') }
-            res += format!("{}{} {} {}\n", k, padding, config.display_sep, v).as_str();
+            res += format!("{}{}{}{}\n", k, padding, config.display_sep, v).as_str();
         }
         res
     }
@@ -121,7 +121,7 @@ impl Config {
             dmenu_cmd: "dmenu".to_string(),
             terminal_cmd: "kitty".to_string(),
             alias_prefix: "_".to_string(),
-            display_sep: ":".to_string(),
+            display_sep: " : ".to_string(),
         }
     }
     fn user_config_file() -> String {
