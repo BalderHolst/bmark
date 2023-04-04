@@ -124,13 +124,16 @@ impl Config {
             display_sep: ":".to_string(),
         }
     }
+    fn user_config_file() -> String {
+        "/home/balder/.config/bmark/config.toml".to_string()
+    }
     fn get_user_config() -> Config {
-        let config_path = PathBuf::from("/home/balder/.config/bmark/config.toml");
-        match File::open(&config_path) {
+        let config_file = Config::user_config_file();
+        match File::open(&config_file) {
             Ok(mut file) => {
                 let mut lines = String::new();
                 if let Err(_) = file.read_to_string(&mut lines){
-                    eprintln!("ERROR: Can not read lines from file: `{}`", config_path.display());
+                    eprintln!("ERROR: Can not read lines from file: `{}`", config_file);
                     exit(1);
                 }
                 let uc: UserConfig = match toml::from_str(lines.as_str()) {
@@ -178,10 +181,32 @@ impl fmt::Display for Config {
     }
 }
 
+fn bmark_config_usage () {
+    eprintln!("Usage: bmark config <subcommand>\n");
+    eprintln!("Commands:");
+    eprintln!("    show         Show the current configuration");
+    eprintln!("    edit         Edit the configuration file");
+}
 
-fn bmark_config() {
+fn bmark_config(subcommand: String) {
     let config = Config::get_user_config();
-    println!("{}", config);
+    match subcommand.as_str() {
+        "show" => {
+            println!("{}", config);
+        },
+        "edit" => {
+            let editor_cmd = config.editor_cmd + " " + Config::user_config_file().as_str();
+            Command::new("sh")
+                .arg("-c")
+                .arg(editor_cmd)
+                .status()
+                .expect("ERROR: Failed to execute editor command.");
+        }
+        _ => {
+            eprintln!("ERROR: not subcommand called `{}`\n", subcommand);
+            bmark_config_usage();
+        }
+    }
 }
 
 fn bmark_info() {
@@ -371,14 +396,15 @@ fn bmark_update(){
 }
 
 fn usage() {
-    println!("usage: bmark <command>\n"                                          );
-    println!("Commands:"                                                         );
-    println!("   add [<name>]    add a bookmark to the current working directory");
-    println!("   edit            edit bookmarks in a text editor"                );
-    println!("   list            list all stored bookmarks"                      );
-    println!("   open            open a new terminal in a bookmarked location"   );
-    println!("   rm <name>       remove a bookmark with a given name"            );
-    println!("   update          update shell aliases file"                      );
+    println!("usage: bmark <command>\n"                                             );
+    println!("Commands:"                                                            );
+    println!("   add [<name>]       add a bookmark to the current working directory");
+    println!("   edit               edit bookmarks in a text editor"                );
+    println!("   list               list all stored bookmarks"                      );
+    println!("   open               open a new terminal in a bookmarked location"   );
+    println!("   rm <name>          remove a bookmark with a given name"            );
+    println!("   config <command>   commands for managing bmark configuration"      );
+    println!("   update             update shell aliases file"                      );
 }
 
 fn main() {
@@ -422,7 +448,14 @@ fn main() {
             bmark_rm(args[2].clone())
         },
         "update" => bmark_update(),
-        "config" => bmark_config(),
+        "config" => {
+            if args.len() < 3 {
+                eprintln!("ERROR: Please provide a subcommand.\n");
+                bmark_config_usage();
+                exit(1);
+            }
+            bmark_config(args[2].clone());
+        },
         "info" => bmark_info(),
         _ => {
             eprintln!("ERROR: command `{}` not known.\n", cmd);
