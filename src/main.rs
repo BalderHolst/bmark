@@ -330,13 +330,15 @@ fn bmark_update(){
         Ok(mut file) => {
             match file.write_all(bytes) {
                 Ok(_) => { },
-                Err(_) => {
-                    eprintln!("ERROR: Could not open aliases file");
+                Err(e) => {
+                    eprintln!("{e}");
+                    eprintln!("ERROR: Could not write to aliases file");
                     exit(1);
                 }
             }
         },
-        Err(_) => {
+        Err(e) => {
+            eprintln!("{e}");
             eprintln!("ERROR: Could not open aliases file");
             exit(1);
         }
