@@ -11,45 +11,67 @@ static BOOKMARKS_FILE: &str = "bookmarks.toml";
 static ALIAS_FILE: &str = "aliases.sh";
 static BOOKMARKS_SEP: &str = " = ";
 
-fn get_bookmark_map(config: &Config) -> HashMap<String, String> {
-    match toml::from_str(get_bookmarks(config).as_str()) {
-            Ok(m) => m,
-            Err(e) => {
-                eprintln!("{e}");
-                eprintln!("ERROR: Could not parse bookmarks file: `{}`", config.get_bookmarks_file().display());
-                exit(1);
-        },
-    }
+struct Bookmarks {
+    file: PathBuf,
 }
 
-fn get_bookmarks(config: &Config) -> String {
-    let bookmarks_file = config.get_bookmarks_file();
-    let mut contents = String::new();
-    match File::open(&bookmarks_file) {
-        Ok(mut file) => {
-            if let Err(_) = file.read_to_string(&mut contents) {
-                    eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", bookmarks_file.display());
-                    exit(1);
-                }
-            },
-        Err(_) => {
-            eprintln!("ERROR: could not open bookmarks file: `{}`", bookmarks_file.display());
-            exit(1);
+impl Bookmarks {
+    fn from(path: PathBuf) -> Bookmarks {
+        Bookmarks { 
+            file: path 
         }
     }
-    contents
+    fn from_config(config: &Config) -> Bookmarks {
+        Bookmarks { 
+            file: config.get_bookmarks_file() 
+        }
+    }
+    fn get_raw(&self) -> String {
+        let mut contents = String::new();
+        match File::open(&self.file) {
+            Ok(mut file) => {
+                if let Err(_) = file.read_to_string(&mut contents) {
+                        eprintln!("ERROR: opened, but could not read from bookmarks file: `{}`", self.file.display());
+                        exit(1);
+                    }
+                },
+            Err(_) => {
+                eprintln!("ERROR: could not open bookmarks file: `{}`", self.file.display());
+                exit(1);
+            }
+        }
+        contents
+    }
+    fn get_map(&self) -> HashMap<String, String> {
+        match toml::from_str(&self.get_raw()) {
+                Ok(m) => m,
+                Err(e) => {
+                    eprintln!("{e}");
+                    eprintln!("ERROR: Could not parse bookmarks file: `{}`", self.file.display());
+                    exit(1);
+            },
+        }
+    }
 }
 
-fn usage() {
-    println!("usage: bmark <command>\n"                                          );
-    println!("Commands:"                                                         );
-    println!("   add [<name>]    add a bookmark to the current working directory");
-    println!("   edit            edit bookmarks in a text editor"                );
-    println!("   list            list all stored bookmarks"                      );
-    println!("   open            open a new terminal in a bookmarked location"   );
-    println!("   rm <name>       remove a bookmark with a given name"            );
-    println!("   update          update shell aliases file"                      );
+impl fmt::Display for Bookmarks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let map = self.get_map();
+        let mut max_len: usize = 0;
+        for l in map.keys() {
+            if l.len() > max_len {
+                max_len = l.len();
+            }
+        }
+        for (k, v) in map {
+            let mut padding = "".to_string();
+            for _ in 0..(max_len - k.len()) { padding.push(' ') }
+            write!(f, "{}{} : {}\n", k, padding, v)?;
+        }
+        Ok(())
+    }
 }
+
 
 // User defined config. These options get merged with the defaults for Config.
 #[derive(Deserialize)]
@@ -145,6 +167,7 @@ impl fmt::Display for Config {
     }
 }
 
+
 fn bmark_config() {
     let config = Config::get_user_config();
     println!("{}", config);
@@ -152,7 +175,8 @@ fn bmark_config() {
 
 fn bmark_info() {
     let config = Config::get_user_config();
-    for (k, v) in get_bookmark_map(&config) {
+    let bookmarks = Bookmarks::from_config(&config);
+    for (k, v) in bookmarks.get_map() {
         println!("{k}, {v}");
     }
 }
@@ -215,12 +239,14 @@ fn bmark_edit() {
 
 fn bmark_list() {
     let config = Config::get_user_config();
-    print!("{}", get_bookmarks(&config));
+    let bookmarks = Bookmarks::from_config(&config);
+    print!("{}", bookmarks);
 }
 
 fn bmark_open(){
     let config = Config::get_user_config();
-    let cmd = "echo '".to_owned() + get_bookmarks(&config).as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
+    let bookmarks = Bookmarks::from_config(&config);
+    let cmd = "echo '".to_owned() + bookmarks.get_raw().as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
     let path = match Command::new("sh")
         .arg("-c")
         .arg(&cmd)
@@ -263,11 +289,11 @@ fn bmark_open(){
 fn bmark_rm(bmark: String){
 
     let config = Config::get_user_config();
-
+    let bookmarks = Bookmarks::from_config(&config);
     let mut bookmarks_str = String::new();
     let mut removed = false;
 
-    for (k, v) in get_bookmark_map(&config) {
+    for (k, v) in bookmarks.get_map() {
         if k == bmark { 
             removed = true;
             continue;
@@ -303,9 +329,9 @@ fn bmark_rm(bmark: String){
 
 fn bmark_update(){
     let config = Config::get_user_config();
-    let bookmarks = get_bookmarks(&config);
+    let bookmarks = Bookmarks::from(config.get_bookmarks_file());
     let mut aliases = String::new();
-    for line in bookmarks.split("\n") {
+    for line in bookmarks.get_raw().split("\n") { // TODO: convert to use get_map()
         let mut parts = line.split(BOOKMARKS_SEP);
         let name = parts.next().unwrap();
         let path = match parts.next() {
@@ -342,6 +368,16 @@ fn bmark_update(){
     }
 }
 
+fn usage() {
+    println!("usage: bmark <command>\n"                                          );
+    println!("Commands:"                                                         );
+    println!("   add [<name>]    add a bookmark to the current working directory");
+    println!("   edit            edit bookmarks in a text editor"                );
+    println!("   list            list all stored bookmarks"                      );
+    println!("   open            open a new terminal in a bookmarked location"   );
+    println!("   rm <name>       remove a bookmark with a given name"            );
+    println!("   update          update shell aliases file"                      );
+}
 
 fn main() {
 
