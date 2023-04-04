@@ -231,12 +231,16 @@ fn bmark_open(){
     {
         Ok(output) => {
             let choice = String::from_utf8(output.stdout).unwrap();
+            if choice == "" {
+                eprintln!("No bookmark chosen.");
+                exit(1);
+            }
             let mut split = choice.split(" - ");
             split.next();
             match split.next() {
                 Some(p) => p.to_owned(),
                 None => {
-                    eprintln!("ERROR: Could not parse line bookmark: `{}`", "test");
+                    eprintln!("ERROR: Could not parse line bookmark: `{}`", choice);
                     exit(1);
                 }
             }
