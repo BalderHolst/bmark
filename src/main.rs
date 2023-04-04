@@ -318,7 +318,7 @@ fn bmark_update(){
                 continue;
             }
         };
-        aliases += format!("alias _{}={}\n", name, path).as_str();
+        aliases += format!("alias {}{}={}\n", config.alias_prefix, name, path).as_str();
     }
     let bytes = aliases.as_bytes();
     match OpenOptions::new()
