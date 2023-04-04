@@ -191,9 +191,12 @@ fn bmark_config_usage () {
 fn bmark_config(subcommand: String) {
     let config = Config::get_user_config();
     match subcommand.as_str() {
-        "show" => {
+        "show" => { // TODO: show options
             println!("{}", config);
         },
+        "create" => {
+            assert!(false, "Not Implemented") // TODO
+        }
         "edit" => {
             let editor_cmd = config.editor_cmd + " " + Config::user_config_file().as_str();
             Command::new("sh")
