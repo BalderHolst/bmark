@@ -7,26 +7,19 @@ use std::path::PathBuf;
 use std::fs::{File, OpenOptions};
 use std::process::{exit, Command};
 
-static BOOKMARKS_FILE: &str = "bookmarks.txt";
+static BOOKMARKS_FILE: &str = "bookmarks.toml";
 static ALIAS_FILE: &str = "aliases.sh";
-static BOOKMARKS_SEP: &str = " - ";
+static BOOKMARKS_SEP: &str = " = ";
 
 fn get_bookmark_map(config: &Config) -> HashMap<String, String> {
-    let mut hmap: HashMap<String, String> = HashMap::new();
-
-    for line in get_bookmarks(config).split("\n") {
-        let mut parts = line.split(BOOKMARKS_SEP);
-        let name = parts.next().unwrap();
-        let path = match parts.next() {
-            Some(p) => p,
-            None => {
-                if line != "" { eprintln!("WARNING: Could not parse bookmark: `{}`. Skipping.", line) };
-                continue;
-            }
-        };
-        hmap.insert(name.to_owned(), path.to_owned());
+    match toml::from_str(get_bookmarks(config).as_str()) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("{e}");
+                eprintln!("ERROR: Could not parse bookmarks file: `{}`", config.get_bookmarks_file().display());
+                exit(1);
+        },
     }
-    hmap
 }
 
 fn get_bookmarks(config: &Config) -> String {
@@ -154,8 +147,14 @@ impl fmt::Display for Config {
 
 fn bmark_config() {
     let config = Config::get_user_config();
-
     println!("{}", config);
+}
+
+fn bmark_info() {
+    let config = Config::get_user_config();
+    for (k, v) in get_bookmark_map(&config) {
+        println!("{k}, {v}");
+    }
 }
 
 fn bmark_add(name: Option<String>) {
@@ -386,6 +385,7 @@ fn main() {
         },
         "update" => bmark_update(),
         "config" => bmark_config(),
+        "info" => bmark_info(),
         _ => {
             eprintln!("ERROR: command `{}` not known.\n", cmd);
             usage();
