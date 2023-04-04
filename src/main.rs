@@ -56,6 +56,7 @@ impl Bookmarks {
 
 impl fmt::Display for Bookmarks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let config = Config::get_user_config();
         let map = self.get_map();
         let mut max_len: usize = 0;
         for l in map.keys() {
@@ -66,7 +67,7 @@ impl fmt::Display for Bookmarks {
         for (k, v) in map {
             let mut padding = "".to_string();
             for _ in 0..(max_len - k.len()) { padding.push(' ') }
-            write!(f, "{}{} : {}\n", k, padding, v)?;
+            write!(f, "{}{} {} {}\n", k, padding, config.display_sep, v)?;
         }
         Ok(())
     }
@@ -81,6 +82,7 @@ struct UserConfig {
     dmenu_cmd: Option<String>,
     terminal_cmd: Option<String>,
     alias_prefix: Option<String>,
+    display_sep: Option<String>,
 }
 
 impl UserConfig {
@@ -91,6 +93,7 @@ impl UserConfig {
             dmenu_cmd: None,
             terminal_cmd: None,
             alias_prefix: None,
+            display_sep: None,
         }
     }
 }
@@ -102,6 +105,7 @@ struct Config {
     dmenu_cmd: String,
     terminal_cmd: String,
     alias_prefix: String,
+    display_sep: String
 }
 
 impl Config {
@@ -112,6 +116,7 @@ impl Config {
             dmenu_cmd: "dmenu".to_string(),
             terminal_cmd: "kitty".to_string(),
             alias_prefix: "_".to_string(),
+            display_sep: ":".to_string(),
         }
     }
     fn get_user_config() -> Config {
@@ -137,6 +142,7 @@ impl Config {
                 if let Some(dmenu_cmd) = uc.dmenu_cmd { c.dmenu_cmd = dmenu_cmd }
                 if let Some(terminal_cmd) = uc.terminal_cmd { c.terminal_cmd = terminal_cmd }
                 if let Some(alias_prefix) = uc.alias_prefix { c.alias_prefix = alias_prefix }
+                if let Some(display_sep) = uc.display_sep { c.display_sep = display_sep }
                 c
             },
             Err(_) => {
