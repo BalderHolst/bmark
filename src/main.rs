@@ -209,14 +209,6 @@ fn bmark_config(subcommand: String) {
     }
 }
 
-fn bmark_info() {
-    let config = Config::get_user_config();
-    let bookmarks = Bookmarks::from_config(&config);
-    for (k, v) in bookmarks.get_map() {
-        println!("{k}, {v}");
-    }
-}
-
 fn bmark_add(name: Option<String>) {
     let bookmarks_file = Config::get_user_config().get_bookmarks_file();
 
@@ -456,7 +448,6 @@ fn main() {
             }
             bmark_config(args[2].clone());
         },
-        "info" => bmark_info(),
         _ => {
             eprintln!("ERROR: command `{}` not known.\n", cmd);
             usage();
