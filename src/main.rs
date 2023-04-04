@@ -337,17 +337,8 @@ fn bmark_update(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from(config.get_bookmarks_file());
     let mut aliases = String::new();
-    for line in bookmarks.get_raw().split("\n") { // TODO: convert to use get_map()
-        let mut parts = line.split(BOOKMARKS_SEP);
-        let name = parts.next().unwrap();
-        let path = match parts.next() {
-            Some(p) => p,
-            None => {
-                if line != "" { eprintln!("WARNING: Could not parse bookmark: `{}`. Skipping.", line) };
-                continue;
-            }
-        };
-        aliases += format!("alias {}{}={}\n", config.alias_prefix, name, path).as_str();
+    for (name, path) in bookmarks.get_map() {
+        aliases += format!("alias {}{}=\"{}\"\n", config.alias_prefix, name, path).as_str();
     }
     let bytes = aliases.as_bytes();
     match OpenOptions::new()
