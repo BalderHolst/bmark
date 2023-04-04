@@ -52,10 +52,8 @@ impl Bookmarks {
             },
         }
     }
-}
-
-impl fmt::Display for Bookmarks {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn readable(&self) -> String {
+        let mut res = String::new();
         let config = Config::get_user_config();
         let map = self.get_map();
         let mut max_len: usize = 0;
@@ -67,8 +65,15 @@ impl fmt::Display for Bookmarks {
         for (k, v) in map {
             let mut padding = "".to_string();
             for _ in 0..(max_len - k.len()) { padding.push(' ') }
-            write!(f, "{}{} {} {}\n", k, padding, config.display_sep, v)?;
+            res += format!("{}{} {} {}\n", k, padding, config.display_sep, v).as_str();
         }
+        res
+    }
+}
+
+impl fmt::Display for Bookmarks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.readable())?;
         Ok(())
     }
 }
@@ -252,7 +257,7 @@ fn bmark_list() {
 fn bmark_open(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from_config(&config);
-    let cmd = "echo '".to_owned() + bookmarks.get_raw().as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
+    let cmd = "echo '".to_owned() + bookmarks.readable().as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
     let path = match Command::new("sh")
         .arg("-c")
         .arg(&cmd)
@@ -264,9 +269,9 @@ fn bmark_open(){
                 eprintln!("No bookmark chosen.");
                 exit(1);
             }
-            let mut split = choice.split(BOOKMARKS_SEP);
+            let mut split = choice.split(&config.display_sep);
             split.next();
-            match split.next() {
+            match split.next() { // TODO: fix with .remainder()
                 Some(p) => p.to_owned(),
                 None => {
                     eprintln!("ERROR: Could not parse line bookmark: `{}`", choice);
