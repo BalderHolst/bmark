@@ -1,5 +1,5 @@
 use std::fmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::{env, fs};
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -41,7 +41,7 @@ impl Bookmarks {
         }
         contents
     }
-    fn get_map(&self) -> HashMap<String, String> {
+    fn get_map(&self) -> BTreeMap<String, String> {
         match toml::from_str(&self.get_raw()) {
                 Ok(m) => m,
                 Err(e) => {
