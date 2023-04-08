@@ -1,6 +1,6 @@
 [package]
 name = "bmark"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Bookmarks cli for your local file system."
 readme = "README.md"
@@ -13,5 +13,5 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 directories = "5.0.0"
-serde = { version = "1.0.159", features = ["derive"] } 
+serde = { version = "1.0.159" } 
 toml = "0.7.3"
