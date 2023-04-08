@@ -201,6 +201,10 @@ fn bmark_config(subcommand: String) {
     let config = Config::get_user_config();
     match subcommand.as_str() {
         "show" => { // TODO: show options
+            let config_file = Config::user_config_file();
+            if !config_file.exists() {
+                println!("No config file found at `{}`. Create one by running `bmark config edit`", config_file.display()); // TODO edit -> create
+            }
             println!("{}", config);
         },
         "create" => {
@@ -385,7 +389,7 @@ fn bmark_update(){
         .write(true)
         .create(true)
         .truncate(true)
-        .open( Config::get_user_config().get_alias_file())
+        .open( config.get_alias_file())
     {
         Ok(mut file) => {
             match file.write_all(bytes) {
