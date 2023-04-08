@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::fs::{File, OpenOptions};
 use std::process::{exit, Command};
+use directories::ProjectDirs;
 
 static BOOKMARKS_FILE: &str = "bookmarks.toml";
 static ALIAS_FILE: &str = "aliases.sh";
@@ -79,14 +80,22 @@ impl fmt::Display for Bookmarks {
 
 
 struct Config {
-    map: HashMap<String, toml::Value>
+    map: HashMap<String, toml::Value>,
 }
 
 impl Config {
-    fn get_data_dir(&self) -> String {
+    fn get_data_dir(&self) -> PathBuf {
         match &self.map.get("data_dir") {
-            Some(toml::Value::String(str)) => str.to_string(),
-            _ => "/home/balder/.local/share/bmark".to_string(),
+            Some(toml::Value::String(str)) => PathBuf::from(str.to_string()),
+            _ => {
+                match ProjectDirs::from("com", "bmark",  "bmark") {
+                    Some(proj_dirs) => PathBuf::from(proj_dirs.data_dir()),
+                    None => {
+                        eprintln!("ERROR: could not determine data directory");
+                        exit(1);
+                    }
+                }
+            },
         }
     }
     fn get_editor_cmd(&self) -> String {
@@ -120,9 +129,16 @@ impl Config {
         }
     }
 
-    fn user_config_file() -> String {
-        "/home/balder/.config/bmark/config.toml".to_string()
+    fn user_config_file() -> PathBuf {
+        match ProjectDirs::from("com", "bmark",  "bmark") {
+            Some(proj_dirs) => PathBuf::from(proj_dirs.config_dir()).join("config.toml"),
+            None => {
+                eprintln!("ERROR: could not determine config directory");
+                exit(1);
+            }
+        }
     }
+
     fn get_user_config() -> Config {
         let config_file = Config::user_config_file();
         let mut m: HashMap<String, toml::Value> = Default::default();
@@ -130,7 +146,7 @@ impl Config {
             Ok(mut file) => {
                 let mut lines = String::new();
                 if let Err(_) = file.read_to_string(&mut lines){
-                    eprintln!("ERROR: Can not read lines from file: `{}`", config_file);
+                    eprintln!("ERROR: Can not read lines from file: `{}`", config_file.display());
                     exit(1);
                 }
                 let user_config: HashMap<String, toml::Value> = toml::from_str(lines.as_str()).unwrap();
@@ -159,7 +175,7 @@ impl Config {
 impl fmt::Display for Config {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}\n{}\n{}\n{}", 
-               self.get_data_dir(), 
+               self.get_data_dir().display(), 
                self.get_dmenu_cmd(),
                self.get_editor_cmd(),
                self.get_terminal_cmd(),
@@ -184,13 +200,12 @@ fn bmark_config(subcommand: String) {
             assert!(false, "Not Implemented") // TODO
         }
         "edit" => {
-            let path_str = Config::user_config_file();
-            let path = PathBuf::from(&path_str);
+            let path = Config::user_config_file();
 
             if !path.exists() {
                 fs::create_dir_all(path.parent().unwrap()).unwrap();
             }
-            let editor_cmd = config.get_editor_cmd() + " " + path_str.as_str();
+            let editor_cmd = config.get_editor_cmd() + " " + path.to_str().unwrap();
             Command::new("sh")
                 .arg("-c")
                 .arg(editor_cmd)

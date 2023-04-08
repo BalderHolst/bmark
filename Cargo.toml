@@ -12,5 +12,6 @@ keywords = ["bookmarks", "cli", "local", "terminal", "dmenu"]
 categories = ["command-line-utilities"]
 
 [dependencies]
+directories = "5.0.0"
 serde = { version = "1.0.159", features = ["derive"] } 
 toml = "0.7.3"
