@@ -65,7 +65,7 @@ impl Bookmarks {
         for (k, v) in map {
             let mut padding = "".to_string();
             for _ in 0..(max_len - k.len()) { padding.push(' ') }
-            res += format!("{}{}{}{}\n", k, padding, config.display_sep, v).as_str();
+            res += format!("{}{}{}{}\n", k, padding, config.get_display_sep(), v).as_str();
         }
         res
     }
@@ -79,56 +79,54 @@ impl fmt::Display for Bookmarks {
 }
 
 
-// User defined config. These options get merged with the defaults for Config.
-#[derive(Deserialize)]
-struct UserConfig {
-    data_dir: Option<String>,
-    editor_cmd: Option<String>,
-    dmenu_cmd: Option<String>,
-    terminal_cmd: Option<String>,
-    alias_prefix: Option<String>,
-    display_sep: Option<String>,
-}
-
-impl UserConfig {
-    fn empty() -> UserConfig {
-        UserConfig {  
-            data_dir: None,
-            editor_cmd: None,
-            dmenu_cmd: None,
-            terminal_cmd: None,
-            alias_prefix: None,
-            display_sep: None,
-        }
-    }
-}
-
-// The configuration used by the progmem.
 struct Config {
-    data_dir: String,
-    editor_cmd: String,
-    dmenu_cmd: String,
-    terminal_cmd: String,
-    alias_prefix: String,
-    display_sep: String
+    map: HashMap<String, toml::Value>
 }
 
 impl Config {
-    fn default() -> Config {
-        Config { 
-            data_dir: "/home/balder/.local/share/bmark".to_string(),
-            editor_cmd: "nvim".to_string(),
-            dmenu_cmd: "dmenu".to_string(),
-            terminal_cmd: "kitty --detach".to_string(),
-            alias_prefix: "_".to_string(),
-            display_sep: " : ".to_string(),
+    fn get_data_dir(&self) -> String {
+        match &self.map.get("data_dir") {
+            Some(toml::Value::String(str)) => str.to_string(),
+            _ => "/home/balder/.local/share/bmark".to_string(),
         }
     }
+    fn get_editor_cmd(&self) -> String {
+        match &self.map.get("editor_cmd") {
+            Some(toml::Value::String(str)) => str.to_string(),
+            _ => "nvim".to_string(),
+        }
+    }
+    fn get_dmenu_cmd(&self) -> String {
+        match &self.map.get("dmenu_cmd") {
+            Some(toml::Value::String(str)) => str.to_string(),
+            _ => "dmenu".to_string(),
+        }
+    }
+    fn get_terminal_cmd(&self) -> String {
+        match &self.map.get("terminal_cmd") {
+            Some(toml::Value::String(str)) => str.to_string(),
+            _ => "kitty --detach".to_string(),
+        }
+    }
+    fn get_alias_prefix(&self) -> String {
+        match &self.map.get("alias_prefix") {
+            Some(toml::Value::String(str)) => str.to_string(),
+            _ => "_".to_string(),
+        }
+    }
+    fn get_display_sep(&self) -> String {
+        match &self.map.get("get_display_sep") {
+            Some(toml::Value::String(str)) => str.to_string(),
+            _ => " : ".to_string(),
+        }
+    }
+
     fn user_config_file() -> String {
         "/home/balder/.config/bmark/config.toml".to_string()
     }
     fn get_user_config() -> Config {
         let config_file = Config::user_config_file();
+        let mut m: HashMap<String, toml::Value> = Default::default();
         match File::open(&config_file) {
             Ok(mut file) => {
                 let mut lines = String::new();
@@ -136,35 +134,24 @@ impl Config {
                     eprintln!("ERROR: Can not read lines from file: `{}`", config_file);
                     exit(1);
                 }
-                let uc: UserConfig = match toml::from_str(lines.as_str()) {
-                    Ok(val) => val,
-                    Err(e) => {
-                        eprintln!("{e}");
-                        eprintln!("WARNING: could not parse `config.toml` file. Using default settings.");
-                        UserConfig::empty()
-                    }
-                };
-                let mut c = Config::default();
-                if let Some(data_dir) = uc.data_dir { c.data_dir = data_dir }
-                if let Some(editor_cmd) = uc.editor_cmd { c.editor_cmd = editor_cmd }
-                if let Some(dmenu_cmd) = uc.dmenu_cmd { c.dmenu_cmd = dmenu_cmd }
-                if let Some(terminal_cmd) = uc.terminal_cmd { c.terminal_cmd = terminal_cmd }
-                if let Some(alias_prefix) = uc.alias_prefix { c.alias_prefix = alias_prefix }
-                if let Some(display_sep) = uc.display_sep { c.display_sep = display_sep }
-                c
+                let user_config: HashMap<String, toml::Value> = toml::from_str(lines.as_str()).unwrap();
+                for (k, v) in user_config.iter() {
+                    m.insert(k.to_owned(), v.to_owned());
+                }
+                Config { map: m }
             },
             Err(_) => {
-                Config::default()
+                Config { map: m }
             },
         }
     }
     fn get_bookmarks_file(&self) -> PathBuf {
-        let mut bookmarks_file = PathBuf::from(&self.data_dir);
+        let mut bookmarks_file = PathBuf::from(&self.get_data_dir());
         bookmarks_file.push(BOOKMARKS_FILE);
         bookmarks_file
     }
     fn get_alias_file(&self) -> PathBuf {
-        let mut bookmarks_file = PathBuf::from(&self.data_dir);
+        let mut bookmarks_file = PathBuf::from(&self.get_data_dir());
         bookmarks_file.push(ALIAS_FILE);
         bookmarks_file
     }
@@ -173,10 +160,10 @@ impl Config {
 impl fmt::Display for Config {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}\n{}\n{}\n{}", 
-               self.data_dir, 
-               self.dmenu_cmd,
-               self.editor_cmd,
-               self.terminal_cmd,
+               self.get_data_dir(), 
+               self.get_dmenu_cmd(),
+               self.get_editor_cmd(),
+               self.get_terminal_cmd(),
                )
     }
 }
@@ -198,7 +185,13 @@ fn bmark_config(subcommand: String) {
             assert!(false, "Not Implemented") // TODO
         }
         "edit" => {
-            let editor_cmd = config.editor_cmd + " " + Config::user_config_file().as_str();
+            let path_str = Config::user_config_file();
+            let path = PathBuf::from(&path_str);
+
+            if !path.exists() {
+                fs::create_dir_all(path.parent().unwrap()).unwrap();
+            }
+            let editor_cmd = config.get_editor_cmd() + " " + path_str.as_str();
             Command::new("sh")
                 .arg("-c")
                 .arg(editor_cmd)
@@ -259,7 +252,7 @@ fn bmark_add(name: Option<String>) {
 fn bmark_edit() {
     let config = Config::get_user_config();
     let path = config.get_bookmarks_file();
-    let editor_cmd = config.editor_cmd + " " + path.to_str().unwrap();
+    let editor_cmd = config.get_editor_cmd() + " " + path.to_str().unwrap();
     Command::new("sh")
         .arg("-c")
         .arg(editor_cmd)
@@ -277,7 +270,7 @@ fn bmark_list() {
 fn bmark_open(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from_config(&config);
-    let cmd = "echo '".to_owned() + bookmarks.readable().as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
+    let cmd = "echo '".to_owned() + bookmarks.readable().as_str()+ "'" + " | " + config.get_dmenu_cmd().as_str();
     let mut path = match Command::new("sh")
         .arg("-c")
         .arg(&cmd)
@@ -289,7 +282,8 @@ fn bmark_open(){
                 eprintln!("No bookmark chosen.");
                 exit(1);
             }
-            let mut split = choice.split(&config.display_sep);
+            let sep = config.get_display_sep();
+            let mut split = choice.split(&sep);
             split.next();
             match split.next() { // TODO: fix with .remainder()
                 Some(p) => p.to_owned(),
@@ -305,8 +299,7 @@ fn bmark_open(){
         }
     };
     path.pop(); // Remove newline
-    let cmd = config.terminal_cmd + " \"" + path.as_str() + "\"";
-    println!("{cmd}");
+    let cmd = config.get_terminal_cmd() + " \"" + path.as_str() + "\"";
 
     if let Err(_) = Command::new("sh")
         .arg("-c")
@@ -364,7 +357,7 @@ fn bmark_update(){
     let bookmarks = Bookmarks::from(config.get_bookmarks_file());
     let mut aliases = String::new();
     for (name, path) in bookmarks.get_map() {
-        aliases += format!("alias {}{}=\"{}\"\n", config.alias_prefix, name, path).as_str();
+        aliases += format!("alias {}{}=\"{}\"\n", config.get_alias_prefix(), name, path).as_str();
     }
     let bytes = aliases.as_bytes();
     match OpenOptions::new()
