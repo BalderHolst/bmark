@@ -174,11 +174,18 @@ impl Config {
 
 impl fmt::Display for Config {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}\n{}\n{}\n{}", 
+        write!(f, "data_dir = \"{}\"
+dmenu_cmd = \"{}\"
+editor_cmd = \"{}\"
+terminal_cmd = \"{}\"
+alias_prefix = \"{}\"
+display_sep = \"{}\"", 
                self.get_data_dir().display(), 
                self.get_dmenu_cmd(),
                self.get_editor_cmd(),
                self.get_terminal_cmd(),
+               self.get_alias_prefix(),
+               self.get_display_sep(),
                )
     }
 }
