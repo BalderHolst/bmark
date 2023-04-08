@@ -1,5 +1,4 @@
 use std::fmt;
-use serde::Deserialize;
 use std::collections::HashMap;
 use std::{env, fs};
 use std::io::{Read, Write};
@@ -323,7 +322,7 @@ fn bmark_rm(bmark: String){
             removed = true;
             continue;
         }
-        bookmarks_str += format!("{}{}{}\n", k, BOOKMARKS_SEP, v).as_str();
+        bookmarks_str += format!("{}{}\"{}\"\n", k, BOOKMARKS_SEP, v).as_str();
     }
     if !removed {
         eprintln!("ERROR: could not find bookmark `{}`.", bmark);
