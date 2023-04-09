@@ -100,11 +100,55 @@ bmark config show
 
 ### List of Configuration Values
 
-| Option       | Default Value                   |
-| ------------ | ------------------------------- |
-| data_dir     | "~/.config/bmark/config.toml"   |
-| dmenu_cmd    | "dmenu"                         |
-| editor_cmd   | "nvim"                          |
-| terminal_cmd | "kitty --detach"                |
-| alias_prefix | "_"                             |
-| display_sep  | " : "                           |
+| Option                        | Default Value                   |
+| ----------------------------- | ------------------------------- |
+| [data_dir](#data_dir)         | "~/.config/bmark/config.toml"   |
+| [dmenu_cmd](#dmenu_cmd)       | "dmenu"                         |
+| [editor_cmd](#editor_cmd)     | "nvim"                          |
+| [terminal_cmd](#terminal_cmd) | "kitty --detach"                |
+| [alias_prefix](#alias_prefix) | "_"                             |
+| [display_sep](#display_sep)   | " : "                           |
+
+## Description of Values
+
+### data_dir
+The directory where the `bookmarks.toml` and `aliases.sh` file is stored.
+
+### dmenu_cmd
+The dmenu-like command is used for fuzzy-finding through bookmarks. This program should (like [dmenu](https://tools.suckless.org/dmenu/)) take input from a pipe, and output the selected line to stdout. To check if a program is suitable for this you can run the following:
+```bash
+seq 20 | <dmenu_cmd>
+```
+This should give you a menu with the numbers from 1 to 20, when you pick one, it should be output in the terminal.
+
+If your command works, you can make bmark use that by adding a like to the '~/.config/bmark/config.toml' file:
+```toml
+dmenu_cmd = "<dmenu_cmd>"
+```
+
+#### Using Rofi instead of dmenu
+If you don't like to look of dmenu and are not up for patching the source code, [rofi](https://github.com/davatorium/rofi)  is a good alternative. To use it simply add this like to your '~/.config/bmark/config.toml' file.
+```toml
+dmenu_cmd = "rofi -dmenu"
+```
+(be sure to have rofi installed)
+
+### editor_cmd
+The editor command is run whenever you ask bmark to edit a file (ex: `bmark edit`). This command should be able to be used like this:
+```bash
+<editor_cmd> <file>
+```
+For this a terminal based editor like [neovim](https://neovim.io/) is recommended.
+
+### terminal_cmd
+The terminal command is the command used for spawning terminal emulators at the desired locations. This command should be able to spawn a terminal in the root directory like this:
+```bash
+<terminal_cmd> /
+```
+If you are not using the `kitty` terminal, you should probably change this.
+
+### alias_prefix
+The prefix in front of the bookmark name for generated aliases.
+
+### display_sep
+The characters separating the bookmark names from their paths when listing or searching through your bookmarks.
