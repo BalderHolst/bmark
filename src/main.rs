@@ -247,13 +247,14 @@ fn bmark_add(name: Option<String>) {
     }
 
     let cwd = env::current_dir().unwrap();
-    let bmark_name = match name {
+    let mut bmark_name = match name {
         Some(n) => n,
         None => cwd.file_stem().unwrap().to_str().unwrap().to_string(),
     };
 
     if bmark_name.rfind(' ') != None {
-        eprintln!("WARNING: Bookmarks with spaces cannot be accesed through aliases. Added it anyway.")
+        eprintln!("WARNING: Bookmarks with spaces cannot be accesed through aliases. Added it anyway.");
+        bmark_name = "\"".to_string() + bmark_name.as_str() + "\"";
     }
 
     match OpenOptions::new()
@@ -264,7 +265,7 @@ fn bmark_add(name: Option<String>) {
     {
         Ok(mut file) => {
             let cwd = env::current_dir().unwrap();
-            if let Err(_) = writeln!(file, "\"{}\" = \"{}\"", bmark_name, cwd.display()) {
+            if let Err(_) = writeln!(file, "{} = \"{}\"", bmark_name, cwd.display()) {
                 eprintln!("ERROR: Could not write to file: {}", bookmarks_file.display());
                 exit(1);
             }
@@ -348,12 +349,13 @@ fn bmark_rm(bmark: String){
     let mut bookmarks_str = String::new();
     let mut removed = false;
 
-    for (k, v) in bookmarks.get_map() {
+    for (mut k, v) in bookmarks.get_map() {
         if k == bmark { 
             removed = true;
             continue;
         }
-        bookmarks_str += format!("\"{}\" = \"{}\"\n", k, v).as_str();
+        if k.rfind(' ') != None { k = "\"".to_string() + k.as_str() + "\"" } 
+        bookmarks_str += format!("{} = \"{}\"\n", k, v).as_str();
     }
     if !removed {
         eprintln!("ERROR: could not find bookmark `{}`.", bmark);
