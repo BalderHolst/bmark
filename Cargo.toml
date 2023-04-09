@@ -1,6 +1,6 @@
 [package]
 name = "bmark"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "Bookmarks cli for your local file system."
 readme = "README.md"
