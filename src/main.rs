@@ -9,7 +9,6 @@ use directories::ProjectDirs;
 
 static BOOKMARKS_FILE: &str = "bookmarks.toml";
 static ALIAS_FILE: &str = "aliases.sh";
-static BOOKMARKS_SEP: &str = " = ";
 
 struct Bookmarks {
     file: PathBuf,
@@ -231,7 +230,6 @@ fn bmark_config(subcommand: String) {
     }
 }
 
-// TODO: Disallow with spaces in name
 fn bmark_add(name: Option<String>) {
     let bookmarks_file = Config::get_user_config().get_bookmarks_file();
 
@@ -248,6 +246,15 @@ fn bmark_add(name: Option<String>) {
         };
     }
 
+    let cwd = env::current_dir().unwrap();
+    let bmark_name = match name {
+        Some(n) => n,
+        None => cwd.file_stem().unwrap().to_str().unwrap().to_string(),
+    };
+
+    if bmark_name.rfind(' ') != None {
+        eprintln!("WARNING: Bookmarks with spaces cannot be accesed through aliases. Added it anyway.")
+    }
 
     match OpenOptions::new()
         .create(true)
@@ -257,13 +264,7 @@ fn bmark_add(name: Option<String>) {
     {
         Ok(mut file) => {
             let cwd = env::current_dir().unwrap();
-            if let Err(_) = match name {
-                Some(n) => writeln!(file, "{}{}\"{}\"", n, BOOKMARKS_SEP, cwd.display()), 
-                None => {
-                    let stem = cwd.file_stem().unwrap();
-                    writeln!(file, "{}{}\"{}\"", stem.to_str().unwrap(), BOOKMARKS_SEP, cwd.display())
-                },
-            } {
+            if let Err(_) = writeln!(file, "\"{}\" = \"{}\"", bmark_name, cwd.display()) {
                 eprintln!("ERROR: Could not write to file: {}", bookmarks_file.display());
                 exit(1);
             }
@@ -352,7 +353,7 @@ fn bmark_rm(bmark: String){
             removed = true;
             continue;
         }
-        bookmarks_str += format!("{}{}\"{}\"\n", k, BOOKMARKS_SEP, v).as_str();
+        bookmarks_str += format!("\"{}\" = \"{}\"\n", k, v).as_str();
     }
     if !removed {
         eprintln!("ERROR: could not find bookmark `{}`.", bmark);
@@ -386,6 +387,7 @@ fn bmark_update(){
     let bookmarks = Bookmarks::from(config.get_bookmarks_file());
     let mut aliases = String::new();
     for (name, path) in bookmarks.get_map() {
+        if name.rfind(' ') != None { continue; } // Skip bookmark names with spaces
         aliases += format!("alias {}{}='cd \"{}\"'\n", config.get_alias_prefix(), name, path).as_str();
     }
     let bytes = aliases.as_bytes();
