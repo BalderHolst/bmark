@@ -6,6 +6,36 @@ Have you ever opened a terminal, just to spend the next few seconds trying to na
 - Open a terminal emulator directly in a bookmarked location, picked with a dmenu-like fuzzy-finder.
 - Navigate to bookmarked locations with shell aliases (see [aliases](#aliases)).
 
+# Dependencies
+This tool has been tested on fedora linux, and should work on all linux distros. MacOs and Windows are currently not supported, but may be implemented in the future.
+
+For this tool to work out of the box, you will need the following installed on your system:
+- [dmenu](https://tools.suckless.org/dmenu/)
+- [kitty](https://sw.kovidgoyal.net/kitty/)
+- [neovim](https://neovim.io/)
+- posix shell like [bash](https://www.gnu.org/software/bash/) or [zsh](https://zsh.sourceforge.io/)
+
+Even though these programs are the default, **they are not strictly required** as they can be swapped out for similar ones using the [configuration file](#configuration).
+
+# Quick Start
+From zero to `bmenu`.
+
+Install cargo and the default programs.
+
+#### Fedora
+```bash
+sudo dnf install cargo dmenu kitty neovim
+```
+Now install `bmark`.
+```bash
+cargo install bmark
+```
+If you have not already, add the `~/.cargo/bin` folder to your `$PATH`. This can be done by adding this line to your `~/.bashrc` or `~/.zshrc`:
+```bash
+PATH=$HOME/.cargo/bin:$PATH
+```
+Done! You should now be able to run `bmark` in your terminal.
+
 # Commands
 Get a quick overview by running with no arguments:
 ```bash
