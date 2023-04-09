@@ -112,7 +112,7 @@ impl Config {
     fn get_terminal_cmd(&self) -> String {
         match &self.map.get("terminal_cmd") {
             Some(toml::Value::String(str)) => str.to_string(),
-            _ => "kitty --detach".to_string(),
+            _ => "kitty --detach -d".to_string(),
         }
     }
     fn get_alias_prefix(&self) -> String {
