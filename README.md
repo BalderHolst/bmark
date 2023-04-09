@@ -55,10 +55,6 @@ Commands:
    update             update shell aliases file
 ```
 
-# Install
-```bash
-cargo install bmark
-```
 ### add
 Add a bookmark to the current working directory. By default this bookmark will be named the same as to the current directory (ex: "foo/bar" -> "bar"), but you can specify a different name by providing it.
 
