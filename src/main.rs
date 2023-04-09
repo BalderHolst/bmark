@@ -381,13 +381,12 @@ fn bmark_rm(bmark: String){
     }
 }
 
-// TODO: Fix no cd
 fn bmark_update(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from(config.get_bookmarks_file());
     let mut aliases = String::new();
     for (name, path) in bookmarks.get_map() {
-        aliases += format!("alias {}{}=\"{}\"\n", config.get_alias_prefix(), name, path).as_str();
+        aliases += format!("alias {}{}='cd \"{}\"'\n", config.get_alias_prefix(), name, path).as_str();
     }
     let bytes = aliases.as_bytes();
     match OpenOptions::new()
