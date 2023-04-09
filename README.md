@@ -85,7 +85,11 @@ All the bookmark aliases are prefixed with '_' by default. This can be changed w
 To enable this in your shell, you need to source the alias file from your shell configuration file (ex: `.bashrc` for `.zshrc`).
 
 # Configuration
-`bmark` configuration is done using the configuration file. This file is located in the configuration directory (ex: `~/.config/bmark/config.toml`). Edit the configuration file easily with this command:
+`bmark` configuration is done using the configuration file. This file is located in the configuration directory (ex: `~/.config/bmark/config.toml`). To create a config file with the default values run the following command:
+```bash
+bmark config create
+```
+Edit the configuration file easily with this command:
 ```bash
 bmark config edit
 ```

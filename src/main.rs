@@ -137,6 +137,9 @@ impl Config {
             }
         }
     }
+    fn default() -> Config {
+        Config { map: HashMap::new() }
+    }
 
     fn get_user_config() -> Config {
         let config_file = Config::user_config_file();
@@ -200,15 +203,46 @@ fn bmark_config_usage () {
 fn bmark_config(subcommand: String) {
     let config = Config::get_user_config();
     match subcommand.as_str() {
-        "show" => { // TODO: show options
+        "show" => {
             let config_file = Config::user_config_file();
             if !config_file.exists() {
-                println!("No config file found at `{}`. Create one by running `bmark config edit`", config_file.display()); // TODO edit -> create
+                println!("No config file found at `{}`. Create one by running `bmark config create`", config_file.display());
             }
-            println!("{}", config);
         },
         "create" => {
-            assert!(false, "Not Implemented") // TODO
+            let config_file = Config::user_config_file();
+            let config = Config::default();
+            if config_file.exists() {
+                eprintln!("ERROR: Cannot create default config file, a config file already exists at `{}`.", 
+                          config_file.display());
+                exit(1);
+            }
+            fs::create_dir_all(config_file.parent().expect("No parrent of config file."))
+                .expect("Could not create config directory.");
+            match OpenOptions::new()
+                .write(true)
+                .create(true)
+                .open(&config_file)
+            {
+                Ok(mut file) => {
+                    let buf = format!("data_dir = \"{}\"\ndmenu_cmd = \"{}\"\neditor_cmd = \"{}\"\nterminal_cmd = \"{}\"\nalias_prefix = \"{}\"\ndisplay_sep = \"{}\"", 
+                        config.get_data_dir().display(), 
+                        config.get_dmenu_cmd(),
+                        config.get_editor_cmd(),
+                        config.get_terminal_cmd(),
+                        config.get_alias_prefix(),
+                        config.get_display_sep(),
+                    );
+
+                    if let Err(e) = file.write_all(buf.as_bytes()) {
+                        eprintln!("ERROR: Could not write to config file : {e}");
+                    }
+                }
+                Err(_) => {
+                    eprintln!("ERROR: Could not open config file: `{}`", config_file.display());
+                    exit(1);
+                }
+            }
         }
         "edit" => {
             let path = Config::user_config_file();
