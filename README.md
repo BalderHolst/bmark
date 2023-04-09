@@ -76,7 +76,7 @@ Update the aliases file (see [aliases](#Aliases)).
 # Aliases
 `bmark` automatically created a file called `aliases.sh` in the data directory. This file defines shell aliases, that navigate to all your bookmarks.
 
-If you you have a bookmark called "myMark" you can navigate it like this:
+If you you have a bookmark called "myMark" you can navigate to it like this:
 ```bash
 _myMark
 ```
