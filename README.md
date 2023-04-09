@@ -75,7 +75,7 @@ Launch dmenu-like program, search through bookmarks and open a terminal in the s
 Remove a bookmark by its name.
 
 ### update
-Update the aliases file (see [alases](#Aliases)). 
+Update the aliases file (see [aliases](#Aliases)). 
 
 # Aliases
 `bmark` automatically created a file called `aliases.sh` in the data directory. This file defines shell aliases, that navigate to all your bookmarks.
