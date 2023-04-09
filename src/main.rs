@@ -197,6 +197,7 @@ fn bmark_config_usage () {
     eprintln!("    edit         Edit the configuration file");
 }
 
+// Add: source_cmd subcommand to output the command to source the alias file
 fn bmark_config(subcommand: String) {
     let config = Config::get_user_config();
     match subcommand.as_str() {
@@ -230,6 +231,7 @@ fn bmark_config(subcommand: String) {
     }
 }
 
+// TODO: Disallow with spaces in name
 fn bmark_add(name: Option<String>) {
     let bookmarks_file = Config::get_user_config().get_bookmarks_file();
 
@@ -292,6 +294,8 @@ fn bmark_list() {
     print!("{}", bookmarks);
 }
 
+// TODO: Check that dmenu-like program is executable
+// TODO: Support fzf
 fn bmark_open(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from_config(&config);
@@ -377,6 +381,7 @@ fn bmark_rm(bmark: String){
     }
 }
 
+// TODO: Fix no cd
 fn bmark_update(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from(config.get_bookmarks_file());
