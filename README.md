@@ -1,5 +1,5 @@
 # Bmark
-Have you ever opened a terminal, just to spend the next few seconds trying to navigate to the right project folder? No more! Introducing `bmark`, the local bookmark manager. Search through your local bookmarks with a dmenu-like fuzzy finder, and open a terminal right in that directory!
+Have you ever opened a terminal, just to spend the next few seconds navigating to the right project folder? No more! Introducing `bmark`, the local bookmark manager. Search through your local bookmarks with a dmenu-like fuzzy finder, and open a terminal right in that directory!
 
 # Features
 - Quickly add and manage local bookmarks from the terminal
@@ -34,7 +34,17 @@ If you have not already, add the `~/.cargo/bin` folder to your `$PATH`. This can
 ```bash
 PATH=$HOME/.cargo/bin:$PATH
 ```
-Done! You should now be able to run `bmark` in your terminal.
+You should now be able to run `bmark` in your terminal!
+
+To enable bmark's navigation aliases, you also need to source the aliases.sh file. The command for doing this can be automatically added to your shell config like this:
+```bash
+# For bash:
+bmark config source-cmd >> ~/.bashrc && bash
+
+# For zsh: 
+bmark config source-cmd >> ~/.zshrc && zsh
+```
+All done!
 
 # Commands
 Get a quick overview by running with no arguments:

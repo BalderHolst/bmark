@@ -257,6 +257,13 @@ fn bmark_config(subcommand: String) {
                 .status()
                 .expect("ERROR: Failed to execute editor command.");
         }
+        "source-cmd" => {
+            println!("source \"{}/{}\"", 
+                     Config::get_user_config().get_data_dir().display(), 
+                     ALIAS_FILE,
+                     );
+            exit(0);
+        }
         _ => {
             eprintln!("ERROR: not subcommand called `{}`\n", subcommand);
             bmark_config_usage();
