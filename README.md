@@ -18,7 +18,7 @@ For this tool to work out of the box, you will need the following installed on y
 Even though these programs are the default, **they are not strictly required** as they can be swapped out for similar ones using the [configuration file](#configuration).
 
 # Quick Start
-From zero to `bmenu`.
+From zero to `bmark`.
 
 Install cargo and the default programs.
 
@@ -81,7 +81,10 @@ Launch dmenu-like program, search through bookmarks and open a terminal in the s
 Remove a bookmark by its name.
 
 ### update
-Update the aliases file (see [aliases](#Aliases)). This is done automatically whenever you alter your bookmarks file through. This command is only usefull if you manually open and the `bookmarks.toml` file without using `bmark edit`.
+Update the aliases file (see [aliases](#Aliases)). This is done automatically whenever you alter your bookmarks file through. This command is only usefull if you manually open and the `bookmarks.toml` file without using `bmark edit`. The command for doing this can be generated like this:
+```bash
+bmark config source-cmd
+```
 
 # Aliases
 `bmark` automatically created a file called `aliases.sh` in the data directory. This file defines shell aliases, that navigate to all your bookmarks.
