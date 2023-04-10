@@ -75,7 +75,7 @@ Edit the `bookmarks.toml` file directly in your editor. The editor is determined
 List the current bookmarks in the terminal.
 
 ### open
-Launch dmenu-like program, search through bookmarks and open a terminal in the selected location. The terminal and dmenu-like program is determined by the user [configuration](#configuration) (default is 'kitty' and 'dmenu').
+Launch dmenu-like program, search through bookmarks and open a terminal in the selected location. The terminal and dmenu-like program is determined by the user [configuration](#configuration) (default is 'kitty' and 'rofi').
 
 ### rm
 Remove a bookmark by its name.
