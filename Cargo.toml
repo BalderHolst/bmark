@@ -8,7 +8,7 @@ documentation = "https://github.com/BalderHolst/bmark" # TODO
 homepage = "https://github.com/BalderHolst/bmark" # TODO
 repository = "https://github.com/BalderHolst/bmark"
 license = "MIT"
-keywords = ["bookmarks", "cli", "local", "terminal", "dmenu"]
+keywords = ["bookmarks", "cli", "local", "terminal", "dmenu", "rofi"]
 categories = ["command-line-utilities"]
 
 [dependencies]

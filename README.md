@@ -10,7 +10,7 @@ Have you ever opened a terminal, just to spend the next few seconds trying to na
 This tool has been tested on fedora linux, and should work on all linux distros. MacOs and Windows are currently not supported, but may be implemented in the future.
 
 For this tool to work out of the box, you will need the following installed on your system:
-- [dmenu](https://tools.suckless.org/dmenu/)
+- [rofi](https://github.com/davatorium/rofi)
 - [kitty](https://sw.kovidgoyal.net/kitty/)
 - [neovim](https://neovim.io/)
 - posix shell like [bash](https://www.gnu.org/software/bash/) or [zsh](https://zsh.sourceforge.io/)
@@ -24,7 +24,7 @@ Install cargo and the default programs.
 
 #### Fedora
 ```bash
-sudo dnf install cargo dmenu kitty neovim
+sudo dnf install cargo rofi kitty neovim
 ```
 Now install `bmark`.
 ```bash
@@ -103,7 +103,7 @@ bmark config show
 | Option                        | Default Value                   |
 | ----------------------------- | ------------------------------- |
 | [data_dir](#data_dir)         | "~/.config/bmark/config.toml"   |
-| [dmenu_cmd](#dmenu_cmd)       | "dmenu"                         |
+| [dmenu_cmd](#dmenu_cmd)       | "rofi -dmenu"                   |
 | [editor_cmd](#editor_cmd)     | "nvim"                          |
 | [terminal_cmd](#terminal_cmd) | "kitty --detach"                |
 | [alias_prefix](#alias_prefix) | "_"                             |
@@ -125,11 +125,12 @@ If your command works, you can make bmark use that by adding a like to the '~/.c
 ```toml
 dmenu_cmd = "<dmenu_cmd>"
 ```
+The default command is `rofi -dmenu`.
 
-#### Using Rofi instead of dmenu
-If you don't like to look of dmenu and are not up for patching the source code, [rofi](https://github.com/davatorium/rofi)  is a good alternative. To use it simply add this like to your '~/.config/bmark/config.toml' file.
+#### Using Actual Dmenu
+If you want to use the actual dmenu instead of rofi, simply add this to your [config](#configuration) .
 ```toml
-dmenu_cmd = "rofi -dmenu"
+dmenu_cmd = "dmenu"
 ```
 (be sure to have rofi installed)
 

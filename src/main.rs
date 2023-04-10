@@ -106,7 +106,7 @@ impl Config {
     fn get_dmenu_cmd(&self) -> String {
         match &self.map.get("dmenu_cmd") {
             Some(toml::Value::String(str)) => str.to_string(),
-            _ => "dmenu".to_string(),
+            _ => "rofi -dmenu".to_string(),
         }
     }
     fn get_terminal_cmd(&self) -> String {
@@ -359,7 +359,7 @@ fn bmark_open(){
             }
         },
         Err(_) => {
-            eprintln!("ERROR: Error running dmenu command: `{}`", cmd);
+            eprintln!("ERROR: Error running dmenu-command: `{}`", cmd);
             exit(1);
         }
     };
