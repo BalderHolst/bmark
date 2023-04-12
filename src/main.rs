@@ -271,6 +271,7 @@ fn bmark_config(subcommand: String) {
     }
 }
 
+// Make sure that there are no duplicates
 fn bmark_add(name: Option<String>) {
     let bookmarks_file = Config::get_user_config().get_bookmarks_file();
 
