@@ -1,4 +1,5 @@
-use std::fmt;
+use fuzzy_finder::{item::Item, FuzzyFinder};
+use std::{fmt, any};
 use std::collections::{HashMap, BTreeMap};
 use std::{env, fs};
 use std::io::{Read, Write};
@@ -338,9 +339,31 @@ fn bmark_list() {
     print!("{}", bookmarks);
 }
 
+fn bmark_open() {
+    let config = Config::get_user_config();
+    let bookmarks = Bookmarks::from_config(&config);
+    let mut items: Vec<Item<String>> = Vec::new();
+    for (k, v) in bookmarks.get_map().iter() {
+        items.push(Item::new(k.to_owned(), v.to_owned()));
+    }
+    let path = match FuzzyFinder::find(items, 8) {
+        Ok(s) => s.unwrap(),
+        Err(_) => {
+            eprintln!("No selected bookmark.");
+            exit(1);
+        }
+    };
+    println!("");
+
+    Command::new("zsh")
+            .current_dir(path)
+            .status()
+            .expect("bash command failed to start");
+}
+
 // TODO: Check that dmenu-like program is executable
 // TODO: Support fzf
-fn bmark_open(){
+fn bmark_dmenu(){
     let config = Config::get_user_config();
     let bookmarks = Bookmarks::from_config(&config);
     let cmd = "echo '".to_owned() + bookmarks.readable().as_str()+ "'" + " | " + config.get_dmenu_cmd().as_str();
@@ -503,6 +526,7 @@ fn main() {
         "edit" => bmark_edit(),
         "list" => bmark_list(),
         "open" => bmark_open(),
+        "dmenu" => bmark_dmenu(),
         "rm" => {
             if args.len() < 3 {
                 eprintln!("ERROR: Please provide a bookmark to remove.\n");

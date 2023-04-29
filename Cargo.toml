@@ -12,5 +12,6 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 directories = "5.0.0"
+fuzzy_finder = "0.3.2"
 serde = { version = "1.0.159" } 
 toml = "0.7.3"
