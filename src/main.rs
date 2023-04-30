@@ -274,7 +274,8 @@ fn bmark_config(subcommand: String) {
 
 // Make sure that there are no duplicates
 fn bmark_add(name: Option<String>) {
-    let bookmarks_file = Config::get_user_config().get_bookmarks_file();
+    let bookmarks = Bookmarks::from_config(&Config::get_user_config());
+    let bookmarks_file = bookmarks.file.clone();
 
     let data_dir = bookmarks_file.parent()
         .expect("Found no parrent to bookmarks file.");
@@ -283,7 +284,7 @@ fn bmark_add(name: Option<String>) {
         match fs::create_dir_all(data_dir) {
             Ok(_) => {},
             Err(e) => {
-                eprint!("ERROR: Could not create data directory `{}`", e);
+                eprint!("ERROR: Could not create data directory: `{}`", e);
                 exit(1);
             }
         };
@@ -295,11 +296,16 @@ fn bmark_add(name: Option<String>) {
         None => cwd.file_stem().unwrap().to_str().unwrap().to_string(),
     };
 
+    if bookmarks.get_map().contains_key(&bmark_name) {
+        eprintln!("ERROR: A bookmark with the name '{bmark_name}' already exists.");
+        exit(1);
+    }
+
     if bmark_name.rfind(' ') != None {
         eprintln!("WARNING: Bookmarks with spaces cannot be accesed through aliases. Added it anyway.");
         bmark_name = "\"".to_string() + bmark_name.as_str() + "\"";
     }
-
+    
     match OpenOptions::new()
         .create(true)
         .write(true)
@@ -347,7 +353,12 @@ fn bmark_open() {
         items.push(Item::new(k.to_owned(), v.to_owned()));
     }
     let path = match FuzzyFinder::find(items, 8) {
-        Ok(s) => s.unwrap(),
+        Ok(s) => {
+            match s {
+                Some(s) => s,
+                None => exit(0), // If nothing was selected
+            }
+        },
         Err(_) => {
             eprintln!("No selected bookmark.");
             exit(1);
