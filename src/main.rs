@@ -1,5 +1,5 @@
 use fuzzy_finder::{item::Item, FuzzyFinder};
-use std::{fmt, any};
+use std::fmt;
 use std::collections::{HashMap, BTreeMap};
 use std::{env, fs};
 use std::io::{Read, Write};
@@ -518,7 +518,7 @@ fn main() {
                 bmark_add(None)
             }
             else {
-                eprintln!("ERROR: Add commands takes zero or one argument.\n");
+                eprintln!("ERROR: `add` commands takes zero or one argument.\n");
                 usage();
                 exit(1);
             }
