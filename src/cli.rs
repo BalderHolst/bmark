@@ -32,14 +32,23 @@ pub(crate) enum Command {
 
 #[derive(Debug, Options)]
 pub(crate) struct AddOpts {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+
     pub(crate) name: Option<String>,
 }
 
 #[derive(Debug, Options)]
-pub struct EditOpts {}
+pub struct EditOpts {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+}
 
 #[derive(Debug, Options)]
-pub struct ListOpts {}
+pub struct ListOpts {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+}
 
 #[derive(Debug, Options)]
 pub struct OpenOpts {
@@ -58,18 +67,27 @@ pub struct OpenOpts {
 
 #[derive(Debug, Options)]
 pub struct RmOpts {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+
     #[options(short = "n", help = "Name of a bookmark")]
     pub(crate) name: String,
 }
 
 #[derive(Debug, Options)]
 pub struct ConfigOpts {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+    
     #[options(command)]
     pub(crate) command: Option<ConfigCommand>,
 }
 
 #[derive(Debug, Options)]
-pub struct UpdateOpts {}
+pub struct UpdateOpts {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+}
 
 #[derive(Debug, Options)]
 pub enum ConfigCommand {
@@ -84,16 +102,28 @@ pub enum ConfigCommand {
 }
 
 #[derive(Debug, Options)]
-pub struct ConfigShow {}
+pub struct ConfigShow {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+}
 
 #[derive(Debug, Options)]
-pub struct ConfigCreate {}
+pub struct ConfigCreate {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+}
 
 #[derive(Debug, Options)]
 pub struct ConfigEdit {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+
     #[options(short = "E", help = "Command to launch a text editor")]
     editor: Option<String>,
 }
 
 #[derive(Debug, Options)]
-pub struct ConfigSourceCmd {}
+pub struct ConfigSourceCmd {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+}
