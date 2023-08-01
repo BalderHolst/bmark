@@ -88,7 +88,7 @@ impl Bookmarks {
 impl fmt::Display for Bookmarks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (k, v) in self.get_map() {
-            write!(f, "{} - {}", k, v)?;
+            write!(f, "{} - {}\n", k, v)?;
         }
         Ok(())
     }
@@ -112,7 +112,7 @@ impl Default for Config {
             editor_cmd: "nvim".to_string(),
             terminal_cmd: "kitty --detach".to_string(),
             alias_prefix: "_".to_string(),
-            display_sep: ":".to_string(),
+            display_sep: " : ".to_string(),
             show_paths: false,
         }
     }
@@ -401,15 +401,28 @@ fn bmark_edit(config: &Config) -> BmarkResult {
     bmark_update(config)
 }
 
-fn bmark_list(config: &Config) -> BmarkResult {
+fn bmark_list(config: &mut Config) -> BmarkResult {
+    config.show_paths = true;
     let bookmarks = Bookmarks::from_config(&config);
-    print!("{}", bookmarks);
+    print!("{}", bookmarks.readable(config));
     Ok(())
 }
 
 // TODO: Check that dmenu-like program is executable
 // TODO: Support fzf
-fn bmark_open(config: &Config) -> BmarkResult {
+fn bmark_open(config: &mut Config, open_opts: &cli::OpenOpts) -> BmarkResult {
+
+    // Override config with cli option, if any were specified.
+    if open_opts.show_paths {
+        config.show_paths = true
+    }
+    if let Some(cmd) = &open_opts.cmd {
+        config.dmenu_cmd = cmd.clone()
+    }
+    if let Some(term) = &open_opts.terminal {
+        config.terminal_cmd = term.clone()
+    }
+
     let bookmarks = Bookmarks::from_config(&config);
     let cmd = "echo '".to_owned()
         + bookmarks.readable(&config).as_str()
@@ -542,21 +555,8 @@ fn main() {
     let res = match cmd {
         cli::Command::Add(add_opts) => bmark_add(&config, add_opts.name),
         cli::Command::Edit(_) => bmark_edit(&config),
-        cli::Command::List(_) => bmark_list(&config),
-        cli::Command::Open(o) => {
-            // Override config with cli option, if any were specified.
-            if o.show_paths {
-                config.show_paths = true
-            }
-            if let Some(cmd) = o.cmd {
-                config.dmenu_cmd = cmd
-            }
-            if let Some(term) = o.terminal {
-                config.terminal_cmd = term
-            }
-
-            bmark_open(&config)
-        }
+        cli::Command::List(_) => bmark_list(&mut config),
+        cli::Command::Open(open_opts) => bmark_open(&mut config, &open_opts),
         cli::Command::Rm(rm_opts) => bmark_rm(&config, rm_opts.name),
         cli::Command::Update(_) => bmark_update(&config),
         cli::Command::Config(config_opts) => {
