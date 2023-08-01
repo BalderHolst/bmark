@@ -1,8 +1,7 @@
 mod cli;
 
 use gumdrop::Options;
-use fuzzy_finder::{item::Item, FuzzyFinder};
-use std::{fmt, io};
+use std::fmt;
 use std::collections::{HashMap, BTreeMap};
 use std::{env, fs};
 use std::io::{Read, Write};
@@ -55,9 +54,8 @@ impl Bookmarks {
             },
         }
     }
-    fn readable(&self) -> String {
+    fn readable(&self, config: &Config) -> String {
         let mut res = String::new();
-        let config = Config::get_user_config();
         let map = self.get_map();
         let mut max_len: usize = 0;
         for l in map.keys() {
@@ -76,7 +74,9 @@ impl Bookmarks {
 
 impl fmt::Display for Bookmarks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.readable())?;
+        for (k, v) in self.get_map() {
+            write!(f, "{} - {}", k, v)?;
+        }
         Ok(())
     }
 }
@@ -132,19 +132,20 @@ impl Config {
         }
     }
 
-    fn user_config_file() -> PathBuf {
+    fn user_config_file() -> Result<PathBuf, String> {
         match ProjectDirs::from("com", "bmark",  "bmark") {
-            Some(proj_dirs) => PathBuf::from(proj_dirs.config_dir()).join("config.toml"),
+            Some(proj_dirs) => Ok(PathBuf::from(proj_dirs.config_dir()).join("config.toml")),
             None => {
-                eprintln!("ERROR: could not determine config directory");
-                exit(1);
+                return Err(format!("ERROR: could not determine config directory"))
             }
         }
     }
     fn default() -> Config {
         Config { map: HashMap::new() }
-    } fn get_user_config() -> Config {
-        let config_file = Config::user_config_file();
+    }
+    
+    fn get_user_config() -> Result<Config, String> {
+        let config_file = Config::user_config_file()?;
         let mut m: HashMap<String, toml::Value> = Default::default();
         match File::open(&config_file) {
             Ok(mut file) => {
@@ -157,13 +158,14 @@ impl Config {
                 for (k, v) in user_config.iter() {
                     m.insert(k.to_owned(), v.to_owned());
                 }
-                Config { map: m }
+                Ok(Config { map: m })
             },
             Err(_) => {
-                Config { map: m }
+                Ok(Config { map: m })
             },
         }
     }
+
     fn get_bookmarks_file(&self) -> PathBuf {
         let mut bookmarks_file = PathBuf::from(&self.get_data_dir());
         bookmarks_file.push(BOOKMARKS_FILE);
@@ -203,16 +205,16 @@ fn bmark_config_usage () {
 
 // Add: source_cmd subcommand to output the command to source the alias file
 fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
-    let config = Config::get_user_config();
+    let config = Config::get_user_config()?;
     match subcommand {
         cli::ConfigCommand::Show(_) => {
-            let config_file = Config::user_config_file();
+            let config_file = Config::user_config_file()?;
             if !config_file.exists() {
                 println!("No config file found at `{}`. Create one by running `bmark config create`", config_file.display());
             }
         },
         cli::ConfigCommand::Create(_) => {
-            let config_file = Config::user_config_file();
+            let config_file = Config::user_config_file()?;
             let config = Config::default();
             if config_file.exists() {
                 eprintln!("ERROR: Cannot create default config file, a config file already exists at `{}`.", 
@@ -247,7 +249,7 @@ fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
             }
         }
         cli::ConfigCommand::Edit(_) => {
-            let path = Config::user_config_file();
+            let path = Config::user_config_file()?;
 
             if !path.exists() {
                 fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -261,7 +263,7 @@ fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
         }
         cli::ConfigCommand::SourceCmd(_) => {
             println!("source \"{}/{}\"", 
-                     Config::get_user_config().get_data_dir().display(), 
+                     Config::get_user_config()?.get_data_dir().display(), 
                      ALIAS_FILE,
                      );
             exit(0);
@@ -273,7 +275,7 @@ fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
 
 // Make sure that there are no duplicates
 fn bmark_add(name: Option<String>) -> BmarkResult {
-    let bookmarks = Bookmarks::from_config(&Config::get_user_config());
+    let bookmarks = Bookmarks::from_config(&Config::get_user_config()?);
     let bookmarks_file = bookmarks.file.clone();
 
     let data_dir = bookmarks_file.parent()
@@ -281,7 +283,7 @@ fn bmark_add(name: Option<String>) -> BmarkResult {
 
     if !data_dir.exists() {
         if let Err(e) = fs::create_dir_all(data_dir) {
-            return Err(BmarkError::IoExplained(format!("ERROR: Could not create data directory: `{}`", e)));
+            return Err(format!("ERROR: Could not create data directory: `{}`", e));
         };
     }
 
@@ -292,7 +294,7 @@ fn bmark_add(name: Option<String>) -> BmarkResult {
     };
 
     if bookmarks.get_map().contains_key(&bmark_name) {
-        return Err(BmarkError::IoExplained(format!("A bookmark with the name '{bmark_name}' already exists.")));
+        return Err(format!("A bookmark with the name '{bmark_name}' already exists."));
     }
 
     if bmark_name.rfind(' ') != None {
@@ -322,7 +324,7 @@ fn bmark_add(name: Option<String>) -> BmarkResult {
 }
 
 fn bmark_edit() -> BmarkResult {
-    let config = Config::get_user_config();
+    let config = Config::get_user_config()?;
     let path = config.get_bookmarks_file();
     let editor_cmd = config.get_editor_cmd() + " " + path.to_str().unwrap();
     if let Err(e) = Command::new("sh")
@@ -330,52 +332,24 @@ fn bmark_edit() -> BmarkResult {
         .arg(editor_cmd)
         .status()
     {
-        return Err(BmarkError::IoExplained(format!("ERROR: Failed to execute editor command:\n{e}")));
+        return Err(format!("ERROR: Failed to execute editor command:\n{e}"));
     }
     bmark_update()
 }
 
 fn bmark_list() -> BmarkResult {
-    let config = Config::get_user_config();
+    let config = Config::get_user_config()?;
     let bookmarks = Bookmarks::from_config(&config);
     print!("{}", bookmarks);
     Ok(())
 }
 
-fn bmark_open() -> BmarkResult {
-    let config = Config::get_user_config();
-    let bookmarks = Bookmarks::from_config(&config);
-    let mut items: Vec<Item<String>> = Vec::new();
-    for (k, v) in bookmarks.get_map().iter() {
-        items.push(Item::new(k.to_owned(), v.to_owned()));
-    }
-    let path = match FuzzyFinder::find(items, 8) {
-        Ok(s) => {
-            match s {
-                Some(s) => s,
-                None => exit(0), // If nothing was selected
-            }
-        },
-        Err(_) => {
-            return Err(BmarkError::IoExplained("No selected bookmark.".to_string()))
-        }
-    };
-    println!("");
-
-    Command::new("zsh")
-            .current_dir(path)
-            .status()
-            .expect("bash command failed to start");
-    
-    Ok(())
-}
-
 // TODO: Check that dmenu-like program is executable
 // TODO: Support fzf
-fn bmark_dmenu(){
-    let config = Config::get_user_config();
+fn bmark_open() -> BmarkResult {
+    let config = Config::get_user_config()?;
     let bookmarks = Bookmarks::from_config(&config);
-    let cmd = "echo '".to_owned() + bookmarks.readable().as_str()+ "'" + " | " + config.get_dmenu_cmd().as_str();
+    let cmd = "echo '".to_owned() + bookmarks.readable(&config).as_str()+ "'" + " | " + config.get_dmenu_cmd().as_str();
     let mut path = match Command::new("sh")
         .arg("-c")
         .arg(&cmd)
@@ -414,11 +388,12 @@ fn bmark_dmenu(){
         eprintln!("ERROR: Could not open terminal with this command: `{}`", cmd);
         exit(1);
     }
+
+    Ok(())
 }
 
 fn bmark_rm(bmark: String) -> BmarkResult {
-
-    let config = Config::get_user_config();
+    let config = Config::get_user_config()?;
     let bookmarks = Bookmarks::from_config(&config);
     let mut bookmarks_str = String::new();
     let mut removed = false;
@@ -432,7 +407,7 @@ fn bmark_rm(bmark: String) -> BmarkResult {
         bookmarks_str += format!("{} = \"{}\"\n", k, v).as_str();
     }
     if !removed {
-        return Err(BmarkError::IoExplained(format!("ERROR: could not find bookmark `{}`.", bmark)))
+        return Err(format!("ERROR: could not find bookmark `{}`.", bmark))
     }
     let bytes = bookmarks_str.as_bytes();
     match OpenOptions::new()
@@ -445,19 +420,19 @@ fn bmark_rm(bmark: String) -> BmarkResult {
             match file.write_all(bytes) {
                 Ok(_) => {},
                 Err(_) => {
-                    return Err(BmarkError::IoExplained("ERROR: Could not open bookmarks file".to_string()))
+                    return Err("ERROR: Could not open bookmarks file".to_string())
                 }
             }
         },
         Err(_) => {
-            return Err(BmarkError::IoExplained("ERROR: Could not open bookmarks file".to_string()))
+            return Err("ERROR: Could not open bookmarks file".to_string())
         }
     }
     Ok(())
 }
 
 fn bmark_update() -> BmarkResult {
-    let config = Config::get_user_config();
+    let config = Config::get_user_config()?;
     let bookmarks = Bookmarks::from(config.get_bookmarks_file());
     let mut aliases = String::new();
     for (name, path) in bookmarks.get_map() {
@@ -475,27 +450,18 @@ fn bmark_update() -> BmarkResult {
             match file.write_all(bytes) {
                 Ok(_) => {},
                 Err(_) => {
-                    return Err(BmarkError::IoExplained(format!("ERROR: Could not write to aliases file")))
+                    return Err(format!("ERROR: Could not write to aliases file"))
                 }
             }
         },
         Err(_) => {
-            return Err(BmarkError::IoExplained(format!("ERROR: Could not open aliases file")))
+            return Err(format!("ERROR: Could not open aliases file"))
         }
     }
     Ok(())
 }
 
-type BmarkResult = Result<(), BmarkError>;
-
-enum BmarkError {
-
-    /// For errors regargin cli commands and options parsing
-    Cli(String),
-
-    /// IO errors that have a custom error message
-    IoExplained(String),
-}
+type BmarkResult = Result<(), String>;
 
 fn main() {
 
@@ -521,16 +487,13 @@ fn main() {
             }
             else {
                 let msg = format!("Please supply a subcommand for `bmark config`.\n\nSubcommands:\n{}", config_opts.self_command_list().unwrap());
-                Err(BmarkError::Cli(msg))
+                Err(msg)
             }
         },
     };
 
     if let Err(e) = res {
-        match e {
-            BmarkError::Cli(msg) => eprintln!("{msg}"),
-            BmarkError::IoExplained(msg) => eprintln!("{msg}"),
-        }
+        eprintln!("{e}");
         exit(1);
     }
 }
