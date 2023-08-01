@@ -94,6 +94,7 @@ struct Config {
     dmenu_cmd: String,
     editor_cmd: String,
     display_sep: String,
+    show_paths: bool,
     terminal_cmd: String,
     alias_prefix: String,
     data_dir: PathBuf,
@@ -108,6 +109,7 @@ impl Default for Config {
             terminal_cmd: "kitty --detach".to_string(),
             alias_prefix: "_".to_string(),
             display_sep: ":".to_string(),
+            show_paths: false,
         }
     }
 }
@@ -120,11 +122,12 @@ impl Config {
         let mut terminal_cmd: Option<String> = None;
         let mut alias_prefix: Option<String> = None;
         let mut data_dir: Option<PathBuf> = None;
+        let mut show_paths: Option<bool> = None;
 
         // Default data_dir
         data_dir = match ProjectDirs::from("com", "bmark", "bmark") {
             Some(proj_dirs) => Some(PathBuf::from(proj_dirs.data_dir())),
-            None => None,
+            None => data_dir,
         };
 
         // Read config form toml file
@@ -134,11 +137,12 @@ impl Config {
                     Some(toml::Value::String(p)) => Some(PathBuf::from(p)),
                     _ => data_dir,
                 };
-                Self::try_get_option(&toml_config, &mut dmenu_cmd, "dmenu_cmd");
-                Self::try_get_option(&toml_config, &mut editor_cmd, "editor_cmd");
-                Self::try_get_option(&toml_config, &mut display_sep, "display_sep");
-                Self::try_get_option(&toml_config, &mut terminal_cmd, "terminal_cmd");
-                Self::try_get_option(&toml_config, &mut alias_prefix, "alias_prefix");
+                Self::try_get_string_option(&toml_config, &mut dmenu_cmd, "dmenu_cmd");
+                Self::try_get_string_option(&toml_config, &mut editor_cmd, "editor_cmd");
+                Self::try_get_string_option(&toml_config, &mut display_sep, "display_sep");
+                Self::try_get_string_option(&toml_config, &mut terminal_cmd, "terminal_cmd");
+                Self::try_get_string_option(&toml_config, &mut alias_prefix, "alias_prefix");
+                Self::try_get_bool_option(&toml_config, &mut show_paths, "show_paths");
             }
             Err(e) => eprintln!("{e}"),
         };
@@ -163,6 +167,9 @@ impl Config {
         if let Some(o) = alias_prefix {
             config.alias_prefix = o;
         }
+        if let Some(o) = show_paths {
+            config.show_paths = o;
+        }
 
         if !config.data_dir.is_dir() {
             return Err("ERROR: Could not deternine data directory.".to_string());
@@ -171,13 +178,23 @@ impl Config {
         Ok(config)
     }
 
-    fn try_get_option(
+    fn try_get_string_option(
         config: &HashMap<String, toml::Value>,
         field: &mut Option<String>,
         option: &str,
     ) {
         if let Some(toml::Value::String(s)) = config.get(option) {
             *field = Some(s.clone());
+        }
+    }
+
+    fn try_get_bool_option(
+        config: &HashMap<String, toml::Value>,
+        field: &mut Option<bool>,
+        option: &str,
+    ) {
+        if let Some(toml::Value::Boolean(b)) = config.get(option) {
+            *field = Some(b.clone());
         }
     }
 
@@ -233,13 +250,15 @@ dmenu_cmd = \"{}\"
 editor_cmd = \"{}\"
 terminal_cmd = \"{}\"
 alias_prefix = \"{}\"
-display_sep = \"{}\"",
+display_sep = \"{}\",
+show_paths = \"{}\"",
             self.data_dir.display(),
             self.dmenu_cmd,
             self.editor_cmd,
             self.terminal_cmd,
             self.alias_prefix,
             self.display_sep,
+            self.show_paths,
         )
     }
 }
@@ -247,23 +266,15 @@ display_sep = \"{}\"",
 // Add: source_cmd subcommand to output the command to source the alias file
 fn bmark_config(config: &Config, subcommand: cli::ConfigCommand) -> BmarkResult {
     match subcommand {
-        cli::ConfigCommand::Show(_) => {
-            let config_file = Config::user_config_file()?;
-            if !config_file.exists() {
-                println!(
-                    "No config file found at `{}`. Create one by running `bmark config create`",
-                    config_file.display()
-                );
-            }
-        }
+        cli::ConfigCommand::Show(_) => println!("{config}"),
         cli::ConfigCommand::Create(_) => {
             let config_file = Config::user_config_file()?;
-            let config = Config::default();
             if config_file.exists() {
                 eprintln!("ERROR: Cannot create default config file, a config file already exists at `{}`.", 
                           config_file.display());
                 exit(1);
             }
+            let config = Config::default();
             fs::create_dir_all(config_file.parent().expect("No parrent of config file."))
                 .expect("Could not create config directory.");
             match OpenOptions::new()
