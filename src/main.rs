@@ -1,3 +1,6 @@
+mod cli;
+
+use gumdrop::Options;
 use fuzzy_finder::{item::Item, FuzzyFinder};
 use std::fmt;
 use std::collections::{HashMap, BTreeMap};
@@ -140,9 +143,7 @@ impl Config {
     }
     fn default() -> Config {
         Config { map: HashMap::new() }
-    }
-
-    fn get_user_config() -> Config {
+    } fn get_user_config() -> Config {
         let config_file = Config::user_config_file();
         let mut m: HashMap<String, toml::Value> = Default::default();
         match File::open(&config_file) {
@@ -201,16 +202,16 @@ fn bmark_config_usage () {
 }
 
 // Add: source_cmd subcommand to output the command to source the alias file
-fn bmark_config(subcommand: String) {
+fn bmark_config(subcommand: cli::ConfigCommand) {
     let config = Config::get_user_config();
-    match subcommand.as_str() {
-        "show" => {
+    match subcommand {
+        cli::ConfigCommand::Show(_) => {
             let config_file = Config::user_config_file();
             if !config_file.exists() {
                 println!("No config file found at `{}`. Create one by running `bmark config create`", config_file.display());
             }
         },
-        "create" => {
+        cli::ConfigCommand::Create(_) => {
             let config_file = Config::user_config_file();
             let config = Config::default();
             if config_file.exists() {
@@ -245,7 +246,7 @@ fn bmark_config(subcommand: String) {
                 }
             }
         }
-        "edit" => {
+        cli::ConfigCommand::Edit(_) => {
             let path = Config::user_config_file();
 
             if !path.exists() {
@@ -258,16 +259,12 @@ fn bmark_config(subcommand: String) {
                 .status()
                 .expect("ERROR: Failed to execute editor command.");
         }
-        "source-cmd" => {
+        cli::ConfigCommand::SourceCmd(_) => {
             println!("source \"{}/{}\"", 
                      Config::get_user_config().get_data_dir().display(), 
                      ALIAS_FILE,
                      );
             exit(0);
-        }
-        _ => {
-            eprintln!("ERROR: not subcommand called `{}`\n", subcommand);
-            bmark_config_usage();
         }
     }
 }
@@ -493,71 +490,38 @@ fn bmark_update(){
     }
 }
 
-fn usage() {
-    println!("usage: bmark <command>\n"                                             );
-    println!("Commands:"                                                            );
-    println!("   add [<name>]       add a bookmark to the current working directory");
-    println!("   edit               edit bookmarks in a text editor"                );
-    println!("   list               list all stored bookmarks"                      );
-    println!("   open               open a new terminal in a bookmarked location"   );
-    println!("   rm <name>          remove a bookmark with a given name"            );
-    println!("   config <command>   commands for managing bmark configuration"      );
-    println!("   update             update shell aliases file"                      );
+enum BmarkError {
+    Cli(String),
 }
 
 fn main() {
 
-    let mut args: Vec<String> = Vec::new();
+    let opts = cli::Opts::parse_args_default_or_exit();
 
-    for argument in env::args() {
-        args.push(argument);
-    }
-
-    if args.len() <= 1 {
-        usage();
-        exit(1);
-    }
-
-    let cmd = args[1].as_str();
+    let cmd = if let Some(c) = opts.command { c }
+    else {
+        eprintln!("{}\n\nSubcommands:\n{}", opts.self_usage(), opts.self_command_list().unwrap());
+        exit(1)
+    };
 
     match cmd {
-        "add" => {
-            if args.len() == 3 {
-                bmark_add(Some(args[2].clone()))
-            }
-            else if args.len() == 2 {
-                bmark_add(None)
-            }
-            else {
-                eprintln!("ERROR: `add` commands takes zero or one argument.\n");
-                usage();
-                exit(1);
-            }
+        cli::Command::Add(add_opts) => {
+            bmark_add(add_opts.name)
         },
-        "edit" => bmark_edit(),
-        "list" => bmark_list(),
-        "open" => bmark_open(),
-        "dmenu" => bmark_dmenu(),
-        "rm" => {
-            if args.len() < 3 {
-                eprintln!("ERROR: Please provide a bookmark to remove.\n");
-                usage();
-                exit(1);
-            }
-            bmark_rm(args[2].clone())
+        cli::Command::Edit(_) => bmark_edit(),
+        cli::Command::List(_) => bmark_list(),
+        cli::Command::Open(_) => bmark_open(),
+        cli::Command::Rm(rm_opts) => {
+            bmark_rm(rm_opts.name)
         },
-        "update" => bmark_update(),
-        "config" => {
-            if args.len() < 3 {
-                eprintln!("ERROR: Please provide a subcommand.\n");
-                bmark_config_usage();
-                exit(1);
+        cli::Command::Update(_) => bmark_update(),
+        cli::Command::Config(config_opts) => {
+            if config_opts.command.is_none() {
+                eprintln!("Please supply a subcommand for `bmark config`.\n{}", config_opts.self_usage());
             }
-            bmark_config(args[2].clone());
+            bmark_config(config_opts.command.unwrap());
         },
-        _ => {
-            eprintln!("ERROR: command `{}` not known.\n", cmd);
-            usage();
-        }
-    }
+    };
+
+    
 }
