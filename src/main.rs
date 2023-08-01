@@ -66,7 +66,7 @@ impl Bookmarks {
         for (k, v) in map {
             let mut padding = "".to_string();
             for _ in 0..(max_len - k.len()) { padding.push(' ') }
-            res += format!("{}{}{}{}\n", k, padding, config.get_display_sep(), v).as_str();
+            res += format!("{}{}{}{}\n", k, padding, config.display_sep, v).as_str();
         }
         res
     }
@@ -83,52 +83,81 @@ impl fmt::Display for Bookmarks {
 
 
 struct Config {
-    map: HashMap<String, toml::Value>,
+    dmenu_cmd: String,
+    editor_cmd: String,
+    display_sep: String,
+    terminal_cmd: String,
+    alias_prefix: String,
+    data_dir: PathBuf,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            data_dir: PathBuf::new(),
+			dmenu_cmd: "rofi -dmenu".to_string(),
+			editor_cmd: "nvim".to_string(),
+            terminal_cmd: "kitty --detach".to_string(),
+            alias_prefix: "_".to_string(),
+			display_sep: ":".to_string(),
+        }
+    }
 }
 
 impl Config {
-    fn get_data_dir(&self) -> PathBuf {
-        match &self.map.get("data_dir") {
-            Some(toml::Value::String(str)) => PathBuf::from(str.to_string()),
-            _ => {
-                match ProjectDirs::from("com", "bmark",  "bmark") {
-                    Some(proj_dirs) => PathBuf::from(proj_dirs.data_dir()),
-                    None => {
-                        eprintln!("ERROR: could not determine data directory");
-                        exit(1);
-                    }
-                }
+
+    fn new(_opts: &cli::Opts) -> Result<Self, String> {
+
+        let mut dmenu_cmd: Option<String> = None;
+        let mut editor_cmd: Option<String> = None;
+        let mut display_sep: Option<String> = None;
+        let mut terminal_cmd: Option<String> = None;
+        let mut alias_prefix: Option<String> = None;
+        let mut data_dir: Option<PathBuf> = None;
+
+        // Default data_dir
+        data_dir = match ProjectDirs::from("com", "bmark",  "bmark") {
+            Some(proj_dirs) => {
+                Some(PathBuf::from(proj_dirs.data_dir()))
             },
+            None => None,
+        };
+
+        // Read config form toml file
+        match Self::get_user_config() {
+            Ok(toml_config) => {
+                data_dir = match toml_config.get("data_dir") {
+                    Some(toml::Value::String(p)) => Some(PathBuf::from(p)),
+                    _ => data_dir,
+                };
+                Self::try_get_option(&toml_config, &mut dmenu_cmd, "dmenu_cmd");
+                Self::try_get_option(&toml_config, &mut editor_cmd, "editor_cmd");
+                Self::try_get_option(&toml_config, &mut display_sep, "display_sep");
+                Self::try_get_option(&toml_config, &mut terminal_cmd, "terminal_cmd");
+                Self::try_get_option(&toml_config, &mut alias_prefix, "alias_prefix");
+            },
+            Err(e) => eprintln!("{e}")
+        };
+
+        let mut config = Self::default();
+
+        if let Some(o) = dmenu_cmd { config.dmenu_cmd = o; }
+        if let Some(o) = editor_cmd { config.editor_cmd = o; }
+        if let Some(o) = data_dir { config.data_dir = PathBuf::from(o); }
+        if let Some(o) = display_sep { config.display_sep = o; }
+        if let Some(o) = terminal_cmd { config.terminal_cmd = o; }
+        if let Some(o) = alias_prefix { config.alias_prefix = o; }
+
+        if !config.data_dir.is_dir() {
+            return Err("ERROR: Could not deternine data directory.".to_string());
         }
+
+        Ok(config)
     }
-    fn get_editor_cmd(&self) -> String {
-        match &self.map.get("editor_cmd") {
-            Some(toml::Value::String(str)) => str.to_string(),
-            _ => "nvim".to_string(),
-        }
-    }
-    fn get_dmenu_cmd(&self) -> String {
-        match &self.map.get("dmenu_cmd") {
-            Some(toml::Value::String(str)) => str.to_string(),
-            _ => "rofi -dmenu".to_string(),
-        }
-    }
-    fn get_terminal_cmd(&self) -> String {
-        match &self.map.get("terminal_cmd") {
-            Some(toml::Value::String(str)) => str.to_string(),
-            _ => "kitty --detach -d".to_string(),
-        }
-    }
-    fn get_alias_prefix(&self) -> String {
-        match &self.map.get("alias_prefix") {
-            Some(toml::Value::String(str)) => str.to_string(),
-            _ => "_".to_string(),
-        }
-    }
-    fn get_display_sep(&self) -> String {
-        match &self.map.get("get_display_sep") {
-            Some(toml::Value::String(str)) => str.to_string(),
-            _ => " : ".to_string(),
+
+    fn try_get_option(config: &HashMap<String, toml::Value>, field: &mut Option<String>, option: &str) {
+        if let Some(toml::Value::String(s)) = config.get(option) {
+            *field = Some(s.clone());
         }
     }
 
@@ -140,39 +169,36 @@ impl Config {
             }
         }
     }
-    fn default() -> Config {
-        Config { map: HashMap::new() }
-    }
-    
-    fn get_user_config() -> Result<Config, String> {
+
+    fn get_user_config() -> Result<HashMap<String, toml::Value>, String> {
         let config_file = Config::user_config_file()?;
         let mut m: HashMap<String, toml::Value> = Default::default();
         match File::open(&config_file) {
             Ok(mut file) => {
                 let mut lines = String::new();
                 if let Err(_) = file.read_to_string(&mut lines){
-                    eprintln!("ERROR: Can not read lines from file: `{}`", config_file.display());
-                    exit(1);
+                    return Err(format!("ERROR: Can not read config file: `{}`", config_file.display()))
                 }
                 let user_config: HashMap<String, toml::Value> = toml::from_str(lines.as_str()).unwrap();
                 for (k, v) in user_config.iter() {
                     m.insert(k.to_owned(), v.to_owned());
                 }
-                Ok(Config { map: m })
+                Ok(m)
             },
             Err(_) => {
-                Ok(Config { map: m })
+                Ok(m)
             },
         }
     }
 
     fn get_bookmarks_file(&self) -> PathBuf {
-        let mut bookmarks_file = PathBuf::from(&self.get_data_dir());
+        let mut bookmarks_file = PathBuf::from(&self.data_dir);
         bookmarks_file.push(BOOKMARKS_FILE);
         bookmarks_file
     }
+
     fn get_alias_file(&self) -> PathBuf {
-        let mut bookmarks_file = PathBuf::from(&self.get_data_dir());
+        let mut bookmarks_file = PathBuf::from(&self.data_dir);
         bookmarks_file.push(ALIAS_FILE);
         bookmarks_file
     }
@@ -186,26 +212,18 @@ editor_cmd = \"{}\"
 terminal_cmd = \"{}\"
 alias_prefix = \"{}\"
 display_sep = \"{}\"", 
-               self.get_data_dir().display(), 
-               self.get_dmenu_cmd(),
-               self.get_editor_cmd(),
-               self.get_terminal_cmd(),
-               self.get_alias_prefix(),
-               self.get_display_sep(),
+               self.data_dir.display(), 
+               self.dmenu_cmd,
+               self.editor_cmd,
+               self.terminal_cmd,
+               self.alias_prefix,
+               self.display_sep,
                )
     }
 }
 
-fn bmark_config_usage () {
-    eprintln!("Usage: bmark config <subcommand>\n");
-    eprintln!("Commands:");
-    eprintln!("    show         Show the current configuration");
-    eprintln!("    edit         Edit the configuration file");
-}
-
 // Add: source_cmd subcommand to output the command to source the alias file
-fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
-    let config = Config::get_user_config()?;
+fn bmark_config(config: &Config, subcommand: cli::ConfigCommand) -> BmarkResult {
     match subcommand {
         cli::ConfigCommand::Show(_) => {
             let config_file = Config::user_config_file()?;
@@ -230,12 +248,12 @@ fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
             {
                 Ok(mut file) => {
                     let buf = format!("data_dir = \"{}\"\ndmenu_cmd = \"{}\"\neditor_cmd = \"{}\"\nterminal_cmd = \"{}\"\nalias_prefix = \"{}\"\ndisplay_sep = \"{}\"", 
-                        config.get_data_dir().display(), 
-                        config.get_dmenu_cmd(),
-                        config.get_editor_cmd(),
-                        config.get_terminal_cmd(),
-                        config.get_alias_prefix(),
-                        config.get_display_sep(),
+                        config.data_dir.display(), 
+                        config.dmenu_cmd,
+                        config.editor_cmd,
+                        config.terminal_cmd,
+                        config.alias_prefix,
+                        config.display_sep,
                     );
 
                     if let Err(e) = file.write_all(buf.as_bytes()) {
@@ -254,7 +272,7 @@ fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
             if !path.exists() {
                 fs::create_dir_all(path.parent().unwrap()).unwrap();
             }
-            let editor_cmd = config.get_editor_cmd() + " " + path.to_str().unwrap();
+            let editor_cmd = config.editor_cmd.clone() + " " + path.to_str().unwrap();
             Command::new("sh")
                 .arg("-c")
                 .arg(editor_cmd)
@@ -263,7 +281,7 @@ fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
         }
         cli::ConfigCommand::SourceCmd(_) => {
             println!("source \"{}/{}\"", 
-                     Config::get_user_config()?.get_data_dir().display(), 
+                     config.data_dir.display(), 
                      ALIAS_FILE,
                      );
             exit(0);
@@ -274,8 +292,8 @@ fn bmark_config(subcommand: cli::ConfigCommand) -> BmarkResult {
 }
 
 // Make sure that there are no duplicates
-fn bmark_add(name: Option<String>) -> BmarkResult {
-    let bookmarks = Bookmarks::from_config(&Config::get_user_config()?);
+fn bmark_add(config: &Config, name: Option<String>) -> BmarkResult {
+    let bookmarks = Bookmarks::from_config(config);
     let bookmarks_file = bookmarks.file.clone();
 
     let data_dir = bookmarks_file.parent()
@@ -320,13 +338,12 @@ fn bmark_add(name: Option<String>) -> BmarkResult {
             exit(1);
         }
     }
-    bmark_update()
+    bmark_update(config)
 }
 
-fn bmark_edit() -> BmarkResult {
-    let config = Config::get_user_config()?;
+fn bmark_edit(config: &Config) -> BmarkResult {
     let path = config.get_bookmarks_file();
-    let editor_cmd = config.get_editor_cmd() + " " + path.to_str().unwrap();
+    let editor_cmd = config.editor_cmd.clone() + " " + path.to_str().unwrap();
     if let Err(e) = Command::new("sh")
         .arg("-c")
         .arg(editor_cmd)
@@ -334,11 +351,10 @@ fn bmark_edit() -> BmarkResult {
     {
         return Err(format!("ERROR: Failed to execute editor command:\n{e}"));
     }
-    bmark_update()
+    bmark_update(config)
 }
 
-fn bmark_list() -> BmarkResult {
-    let config = Config::get_user_config()?;
+fn bmark_list(config: &Config) -> BmarkResult {
     let bookmarks = Bookmarks::from_config(&config);
     print!("{}", bookmarks);
     Ok(())
@@ -346,10 +362,9 @@ fn bmark_list() -> BmarkResult {
 
 // TODO: Check that dmenu-like program is executable
 // TODO: Support fzf
-fn bmark_open() -> BmarkResult {
-    let config = Config::get_user_config()?;
+fn bmark_open(config: &Config) -> BmarkResult {
     let bookmarks = Bookmarks::from_config(&config);
-    let cmd = "echo '".to_owned() + bookmarks.readable(&config).as_str()+ "'" + " | " + config.get_dmenu_cmd().as_str();
+    let cmd = "echo '".to_owned() + bookmarks.readable(&config).as_str()+ "'" + " | " + config.dmenu_cmd.as_str();
     let mut path = match Command::new("sh")
         .arg("-c")
         .arg(&cmd)
@@ -361,7 +376,7 @@ fn bmark_open() -> BmarkResult {
                 eprintln!("No bookmark chosen.");
                 exit(1);
             }
-            let sep = config.get_display_sep();
+            let sep = config.display_sep.clone();
             let mut split = choice.split(&sep);
             split.next();
             match split.next() { // TODO: fix with .remainder()
@@ -378,7 +393,7 @@ fn bmark_open() -> BmarkResult {
         }
     };
     path.pop(); // Remove newline
-    let cmd = config.get_terminal_cmd() + " \"" + path.as_str() + "\"";
+    let cmd = config.terminal_cmd.clone() + " \"" + path.as_str() + "\"";
 
     if let Err(_) = Command::new("sh")
         .arg("-c")
@@ -392,8 +407,7 @@ fn bmark_open() -> BmarkResult {
     Ok(())
 }
 
-fn bmark_rm(bmark: String) -> BmarkResult {
-    let config = Config::get_user_config()?;
+fn bmark_rm(config: &Config, bmark: String) -> BmarkResult {
     let bookmarks = Bookmarks::from_config(&config);
     let mut bookmarks_str = String::new();
     let mut removed = false;
@@ -431,13 +445,12 @@ fn bmark_rm(bmark: String) -> BmarkResult {
     Ok(())
 }
 
-fn bmark_update() -> BmarkResult {
-    let config = Config::get_user_config()?;
+fn bmark_update(config: &Config) -> BmarkResult {
     let bookmarks = Bookmarks::from(config.get_bookmarks_file());
     let mut aliases = String::new();
     for (name, path) in bookmarks.get_map() {
         if name.rfind(' ') != None { continue; } // Skip bookmark names with spaces
-        aliases += format!("alias {}{}='cd \"{}\"'\n", config.get_alias_prefix(), name, path).as_str();
+        aliases += format!("alias {}{}='cd \"{}\"'\n", config.alias_prefix, name, path).as_str();
     }
     let bytes = aliases.as_bytes();
     match OpenOptions::new()
@@ -467,6 +480,14 @@ fn main() {
 
     let opts = cli::Opts::parse_args_default_or_exit();
 
+    let config = match Config::new(&opts) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{e}");
+            exit(1)
+        },
+    };
+
     let cmd = if let Some(c) = opts.command { c }
     else {
         eprintln!("{}\n\nSubcommands:\n{}", opts.self_usage(), opts.self_command_list().unwrap());
@@ -474,16 +495,16 @@ fn main() {
     };
 
     let res = match cmd {
-        cli::Command::Add(add_opts) => bmark_add(add_opts.name),
-        cli::Command::Edit(_) => bmark_edit(),
-        cli::Command::List(_) => bmark_list(),
-        cli::Command::Open(_) => bmark_open(),
+        cli::Command::Add(add_opts) => bmark_add(&config, add_opts.name),
+        cli::Command::Edit(_) => bmark_edit(&config),
+        cli::Command::List(_) => bmark_list(&config),
+        cli::Command::Open(_) => bmark_open(&config),
         cli::Command::Rm(rm_opts) => {
-            bmark_rm(rm_opts.name)
+            bmark_rm(&config, rm_opts.name)
         },
-        cli::Command::Update(_) => bmark_update(), cli::Command::Config(config_opts) => {
+        cli::Command::Update(_) => bmark_update(&config), cli::Command::Config(config_opts) => {
             if let Some(cmd) = config_opts.command {
-                bmark_config(cmd)
+                bmark_config(&config, cmd)
             }
             else {
                 let msg = format!("Please supply a subcommand for `bmark config`.\n\nSubcommands:\n{}", config_opts.self_command_list().unwrap());

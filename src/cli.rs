@@ -60,9 +60,13 @@ pub struct UpdateOpts {}
 
 #[derive(Debug, Options)]
 pub enum ConfigCommand {
+    #[options(help = "Show the current configuration")]
     Show(ConfigShow),
+    #[options(help = "Create a configuration file with default configuration")]
     Create(ConfigCreate),
+    #[options(help = "Edit the configuration file")]
     Edit(ConfigEdit),
+    #[options(help = "Print the command used to source the bookmark aliases file.")]
     SourceCmd(ConfigSourceCmd),
 }
 
