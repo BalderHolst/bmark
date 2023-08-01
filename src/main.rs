@@ -62,7 +62,6 @@ impl Bookmarks {
         }
     }
     fn readable(&self, config: &Config) -> String {
-        let mut res = String::new();
         let map = self.get_map();
         let mut max_len: usize = 0;
         for l in map.keys() {
@@ -70,14 +69,19 @@ impl Bookmarks {
                 max_len = l.len();
             }
         }
-        for (k, v) in map {
-            let mut padding = "".to_string();
-            for _ in 0..(max_len - k.len()) {
-                padding.push(' ')
+        if config.show_paths {
+            let mut res = String::new();
+            for (k, v) in map {
+                let mut padding = "".to_string();
+                for _ in 0..(max_len - k.len()) {
+                    padding.push(' ')
+                }
+                res += format!("{}{}{}{}\n", k, padding, config.display_sep, v).as_str();
             }
-            res += format!("{}{}{}{}\n", k, padding, config.display_sep, v).as_str();
+            res
+        } else {
+            map.keys().map(|k| k.to_string() + "\n").collect()
         }
-        res
     }
 }
 
@@ -414,21 +418,22 @@ fn bmark_open(config: &Config) -> BmarkResult {
         + config.dmenu_cmd.as_str();
     let mut path = match Command::new("sh").arg("-c").arg(&cmd).output() {
         Ok(output) => {
-            let choice = String::from_utf8(output.stdout).unwrap();
+            let mut choice = String::from_utf8(output.stdout).unwrap();
             if choice == "" {
                 eprintln!("No bookmark chosen.");
                 exit(1);
             }
             let sep = config.display_sep.clone();
-            let mut split = choice.split(&sep);
-            split.next();
-            match split.next() {
-                // TODO: fix with .remainder()
-                Some(p) => p.to_owned(),
+
+            match choice.split_once(&sep) {
+                Some((_, p)) => p.to_owned(),
                 None => {
-                    eprintln!("ERROR: Could not parse line bookmark: `{}`", choice);
-                    exit(1);
-                }
+                    if choice.chars().last() == Some('\n') { choice.pop(); }
+                    match bookmarks.get_map().get(&choice) {
+                        Some(c) => c.clone(),
+                        None => return Err(format!("ERROR: Could not find bookmark with the name: {}.", choice)),
+                    }
+                },
             }
         }
         Err(_) => {
@@ -436,7 +441,8 @@ fn bmark_open(config: &Config) -> BmarkResult {
             exit(1);
         }
     };
-    path.pop(); // Remove newline
+    if path.chars().last() == Some('\n') { path.pop(); }
+
     let cmd = config.terminal_cmd.clone() + " \"" + path.as_str() + "\"";
 
     if let Err(_) = Command::new("sh").arg("-c").arg(&cmd).status() {
@@ -514,7 +520,7 @@ type BmarkResult = Result<(), String>;
 fn main() {
     let opts = cli::Opts::parse_args_default_or_exit();
 
-    let config = match Config::new(&opts) {
+    let mut config = match Config::new(&opts) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("{e}");
@@ -537,7 +543,20 @@ fn main() {
         cli::Command::Add(add_opts) => bmark_add(&config, add_opts.name),
         cli::Command::Edit(_) => bmark_edit(&config),
         cli::Command::List(_) => bmark_list(&config),
-        cli::Command::Open(_) => bmark_open(&config),
+        cli::Command::Open(o) => {
+            // Override config with cli option, if any were specified.
+            if o.show_paths {
+                config.show_paths = true
+            }
+            if let Some(cmd) = o.cmd {
+                config.dmenu_cmd = cmd
+            }
+            if let Some(term) = o.terminal {
+                config.terminal_cmd = term
+            }
+
+            bmark_open(&config)
+        }
         cli::Command::Rm(rm_opts) => bmark_rm(&config, rm_opts.name),
         cli::Command::Update(_) => bmark_update(&config),
         cli::Command::Config(config_opts) => {

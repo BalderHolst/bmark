@@ -2,7 +2,7 @@ use gumdrop::Options;
 
 #[derive(Debug, Options)]
 pub(crate) struct Opts {
-    #[options(help = "print help message")]
+    #[options(short = "h", help = "print help message")]
     pub(crate) help: bool,
 
     #[options(short = "v", help = "be verbose")]
@@ -42,10 +42,23 @@ pub struct EditOpts {}
 pub struct ListOpts {}
 
 #[derive(Debug, Options)]
-pub struct OpenOpts {}
+pub struct OpenOpts {
+    #[options(short = "h", help = "print help message")]
+    pub(crate) help: bool,
+
+    #[options(short = "P", help = "Show corrsponding bookmark paths")]
+    pub(crate) show_paths: bool,
+
+    #[options(short = "D", help = "Dmenu-like command to be used for fuzzyfinding")]
+    pub(crate) cmd: Option<String>,
+
+    #[options(short = "T", help = "Terminal command")]
+    pub(crate) terminal: Option<String>,
+}
 
 #[derive(Debug, Options)]
 pub struct RmOpts {
+    #[options(short = "n", help = "Name of a bookmark")]
     pub(crate) name: String,
 }
 
@@ -66,7 +79,7 @@ pub enum ConfigCommand {
     Create(ConfigCreate),
     #[options(help = "Edit the configuration file")]
     Edit(ConfigEdit),
-    #[options(help = "Print the command used to source the bookmark aliases file.")]
+    #[options(help = "Print the command used to source the bookmark aliases file")]
     SourceCmd(ConfigSourceCmd),
 }
 
@@ -77,7 +90,10 @@ pub struct ConfigShow {}
 pub struct ConfigCreate {}
 
 #[derive(Debug, Options)]
-pub struct ConfigEdit {}
+pub struct ConfigEdit {
+    #[options(short = "E", help = "Command to launch a text editor")]
+    editor: Option<String>,
+}
 
 #[derive(Debug, Options)]
 pub struct ConfigSourceCmd {}
