@@ -1,5 +1,5 @@
 # Bmark
-Have you ever opened a terminal, just to spend the next few seconds navigating to the right project folder? No more! Introducing `bmark`, the local bookmark manager. Search through your local bookmarks with a dmenu-like fuzzy finder, and open a terminal right in that directory!
+Have you ever opened a terminal, just to spend the next few seconds navigating to the right folder? No more! Introducing `bmark`, the local bookmark manager. Search through your local bookmarks with a dmenu-like fuzzy finder, and open a terminal right in that directory!
 
 # Features
 - Quickly add and manage local bookmarks from the terminal
@@ -7,7 +7,7 @@ Have you ever opened a terminal, just to spend the next few seconds navigating t
 - Navigate to bookmarked locations with shell aliases (see [aliases](#aliases)).
 
 # Dependencies
-This tool has been tested on fedora linux, and should work on all linux distros. MacOs and Windows are currently not supported, but may be implemented in the future.
+This tool has been tested on fedora linux and nixos, and should work on all linux distros. MacOs and Windows are currently not supported, but may be implemented in the future.
 
 For this tool to work out of the box, you will need the following installed on your system:
 - [rofi](https://github.com/davatorium/rofi)
@@ -37,6 +37,7 @@ PATH=$HOME/.cargo/bin:$PATH
 You should now be able to run `bmark` in your terminal!
 
 To enable bmark's navigation aliases, you also need to source the aliases.sh file. The command for doing this can be automatically added to your shell config like this:
+
 ```bash
 # For bash:
 bmark config source-cmd >> ~/.bashrc && bash
@@ -48,21 +49,25 @@ All done!
 
 # Commands
 Get a quick overview by running with no arguments:
+
 ```bash
 bmark
 ```
+
 *Output:*
 ```
-usage: bmark <command>
+Optional arguments:
+  -h, --help     print help message
+  -v, --verbose  be verbose
 
-Commands:
-   add [<name>]       add a bookmark to the current working directory
-   edit               edit bookmarks in a text editor
-   list               list all stored bookmarks
-   open               open a new terminal in a bookmarked location
-   rm <name>          remove a bookmark with a given name
-   config <command>   commands for managing bmark configuration
-   update             update shell aliases file
+Subcommands:
+  add     add a bookmark to the current working directory
+  edit    edit bookmarks in a text editor
+  list    list all stored bookmarks
+  open    open a new terminal in a bookmarked location
+  rm      remove a bookmark with a given name
+  config  commands for managing bmark configuration
+  update  update shell aliases file
 ```
 
 ### add
@@ -79,6 +84,11 @@ Launch dmenu-like program, search through bookmarks and open a terminal in the s
 
 ### rm
 Remove a bookmark by its name.
+
+### Config
+Commands for managing configuration.
+
+See [configuration](#Configuration).
 
 ### update
 Update the aliases file (see [aliases](#Aliases)). This is done automatically whenever you alter your bookmarks file through. This command is only usefull if you manually open and the `bookmarks.toml` file without using `bmark edit`. The command for doing this can be generated like this:
@@ -99,14 +109,19 @@ To enable this in your shell, you need to source the alias file from your shell 
 
 # Configuration
 `bmark` configuration is done using the configuration file. This file is located in the configuration directory (ex: `~/.config/bmark/config.toml`). To create a config file with the default values run the following command:
+
 ```bash
 bmark config create
 ```
+
 Edit the configuration file easily with this command:
+
 ```bash
 bmark config edit
 ```
+
 To show the current config, run this command:
+
 ```bash
 bmark config show
 ```
@@ -115,11 +130,12 @@ bmark config show
 
 | Option                        | Default Value                   |
 | ----------------------------- | ------------------------------- |
-| [data_dir](#data_dir)         | "~/.config/bmark/config.toml"   |
-| [dmenu_cmd](#dmenu_cmd)       | "rofi -dmenu"                   |
+| [data_dir](#data_dir)         | "~/.local/share/bmark"   |
+| [dmenu_cmd](#dmenu_cmd)       | "rofi -matching fuzzy -dmenu"                   |
 | [editor_cmd](#editor_cmd)     | "nvim"                          |
 | [terminal_cmd](#terminal_cmd) | "kitty --detach"                |
 | [alias_prefix](#alias_prefix) | "_"                             |
+| [show_paths](#show_paths)   | false
 | [display_sep](#display_sep)   | " : "                           |
 
 ## Description of Values
@@ -163,6 +179,9 @@ If you are not using the `kitty` terminal, you should probably change this.
 
 ### alias_prefix
 The prefix in front of the bookmark name for generated aliases.
+
+### show_paths
+Whether or not, to show paths in the dmenu-like fuzzy finder. If false, the `display_sep` has no effect.
 
 ### display_sep
 The characters separating the bookmark names from their paths when listing or searching through your bookmarks.
