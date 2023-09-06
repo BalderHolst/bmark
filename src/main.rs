@@ -115,7 +115,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             data_dir: PathBuf::new(),
-            dmenu_cmd: "rofi -dmenu".to_string(),
+            dmenu_cmd: "rofi -matching fuzzy -dmenu".to_string(),
             editor_cmd: "nvim".to_string(),
             terminal_cmd: "kitty --detach".to_string(),
             alias_prefix: "_".to_string(),
