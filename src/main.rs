@@ -61,7 +61,7 @@ impl Bookmarks {
             }
         }
     }
-    fn readable(&self, config: &Config) -> String {
+    fn readable_with_paths(&self, sep: &String) -> String {
         let map = self.get_map();
         let mut max_len: usize = 0;
         for l in map.keys() {
@@ -69,19 +69,26 @@ impl Bookmarks {
                 max_len = l.len();
             }
         }
-        if config.show_paths {
-            let mut res = String::new();
-            for (k, v) in map {
-                let mut padding = "".to_string();
-                for _ in 0..(max_len - k.len()) {
-                    padding.push(' ')
-                }
-                res += format!("{}{}{}{}\n", k, padding, config.display_sep, v).as_str();
+        let mut res = String::new();
+        for (k, v) in map {
+            let mut padding = "".to_string();
+            for _ in 0..(max_len - k.len()) {
+                padding.push(' ')
             }
-            res
-        } else {
-            map.keys().map(|k| k.to_string() + "\n").collect()
+            res += format!("{}{}{}{}\n", k, padding, sep, v).as_str();
         }
+        res
+    }
+
+    fn readable(&self) -> String {
+        let map = self.get_map();
+        let mut max_len: usize = 0;
+        for l in map.keys() {
+            if l.len() > max_len {
+                max_len = l.len();
+            }
+        }
+        map.keys().map(|k| k.to_string() + "\n").collect()
     }
 }
 
@@ -404,7 +411,7 @@ fn bmark_edit(config: &Config) -> BmarkResult {
 fn bmark_list(config: &mut Config) -> BmarkResult {
     config.show_paths = true;
     let bookmarks = Bookmarks::from_config(&config);
-    print!("{}", bookmarks.readable(config));
+    print!("{}", bookmarks.readable_with_paths(&config.display_sep));
     Ok(())
 }
 
@@ -424,8 +431,14 @@ fn bmark_open(config: &mut Config, open_opts: &cli::OpenOpts) -> BmarkResult {
     }
 
     let bookmarks = Bookmarks::from_config(&config);
+    let bookmarls_str = if config.show_paths {
+        bookmarks.readable_with_paths(&config.display_sep)
+    }
+    else {
+        bookmarks.readable()
+    };
     let cmd = "echo '".to_owned()
-        + bookmarks.readable(&config).as_str()
+        + bookmarls_str.as_str()
         + "'"
         + " | "
         + config.dmenu_cmd.as_str();
