@@ -152,7 +152,7 @@ bmark config show
 ## Description of Values
 
 ### data_dir
-The directory where the `bookmarks.toml` and `aliases.sh` file is stored.
+The directory where the `bookmarks.toml` and `aliases.sh` files are stored.
 
 ### dmenu_cmd
 The dmenu-like command is used for fuzzy-finding through bookmarks. This program should (like [dmenu](https://tools.suckless.org/dmenu/)) take input from a pipe, and output the selected line to stdout. To check if a program is suitable for this you can run the following:
@@ -172,7 +172,7 @@ If you want to use the actual dmenu instead of rofi, simply add this to your [co
 ```toml
 dmenu_cmd = "dmenu"
 ```
-(be sure to have rofi installed)
+(be sure to have dmenu installed)
 
 ### editor_cmd
 The editor command is run whenever you ask bmark to edit a file (ex: `bmark edit`). This command should be able to be used like this:
@@ -189,7 +189,7 @@ The terminal command is the command used for spawning terminal emulators at the 
 If you are not using the `kitty` terminal, you should probably change this.
 
 ### alias_prefix
-The prefix in front of the bookmark name for generated aliases.
+The prefix in front of bookmark names for generated aliases.
 
 ### show_paths
 Whether or not, to show paths in the dmenu-like fuzzy finder. If false, the `display_sep` has no effect.
