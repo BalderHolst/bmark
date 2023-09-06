@@ -47,6 +47,17 @@ bmark config source-cmd >> ~/.zshrc && zsh
 ```
 All done!
 
+#### Nixos
+Derivation can be found [here](https://github.com/BalderHolst/nix-hyprland-config/blob/main/nixos/pkgs/bmark.nix).
+
+After installation, run the following command:
+
+```
+bmark config source-cmd
+```
+
+This will output a line of bash/zsh, that should be put in your `.zshrc` or `.bashrc`. This is required to use the bookmark aliases.
+
 # Commands
 Get a quick overview by running with no arguments:
 
