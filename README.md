@@ -48,7 +48,7 @@ bmark config source-cmd >> ~/.zshrc && zsh
 All done!
 
 #### Nixos
-Derivation can be found [here](https://github.com/BalderHolst/nix-hyprland-config/blob/main/nixos/pkgs/bmark.nix).
+Derivation can be found [here](https://github.com/BalderHolst/nix-hyprland-config/blob/main/pkgs/bmark.nix).
 
 After installation, run the following command:
 
