@@ -165,7 +165,6 @@ If your command works, you can make bmark use that by adding a like to the '~/.c
 ```toml
 dmenu_cmd = "<dmenu_cmd>"
 ```
-The default command is `rofi -dmenu`.
 
 #### Using Actual Dmenu
 If you want to use the actual dmenu instead of rofi, simply add this to your [config](#configuration) .
@@ -192,7 +191,7 @@ If you are not using the `kitty` terminal, you should probably change this.
 The prefix in front of bookmark names for generated aliases.
 
 ### show_paths
-Whether or not, to show paths in the dmenu-like fuzzy finder. If false, the `display_sep` has no effect.
+Whether or not to show paths in the dmenu-like fuzzy finder. If false, the `display_sep` has no effect.
 
 ### display_sep
 The characters separating the bookmark names from their paths when listing or searching through your bookmarks.
